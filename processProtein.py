@@ -19,10 +19,11 @@ from dnaprodb_utils import getStructureFromModel
 # External data directories
 DATA_PATH = C["DATA_PATH"]
 ROOT_DIR = C["ROOT_DIR"]
-UNIPROT_DIR = os.path.join(ROOT_DIR, "UNIPROT")
-PDB_DIR = os.path.join(ROOT_DIR, "PDB")
-CATH_DIR = os.path.join(ROOT_DIR, "CATH")
-SIFTS_DIR = os.path.join(ROOT_DIR, "SIFTS")
+#UNIPROT_DIR = os.path.join(ROOT_DIR, "UNIPROT")
+#PDB_DIR = os.path.join(ROOT_DIR, "PDB")
+#CATH_DIR = os.path.join(ROOT_DIR, "CATH")
+#SIFTS_DIR = os.path.join(ROOT_DIR, "SIFTS")
+MAPPING_DIR = os.path.join(ROOT_DIR, "MAPPINGS")
 
 # Import standard SASA values
 with open(os.path.join(DATA_PATH,'standard-sasa.json')) as FILE:
@@ -191,147 +192,176 @@ def getDSSP(arg, structure, fileName, chain_map=None):
                     ssMap[skey] = 'L'
         return ssMap
 
-def addExternalData(models, pdbid, mmcif_dict, chain_map):
+#def addExternalData(models, pdbid, mmcif_dict, chain_map):
+def addExternalData(models, pdbid):
+    #clusters = ["30", "40", "50", "70", "90", "95", "100"]
+    #prefix = pdbid[-1]
+    
+    ## Get UNIPROT data
+    #UNP_ACCS = {}
+    #UNP_RECORD = {}
+    #UNP_mapping = os.path.join(SIFTS_DIR, prefix, 'uniprot_mapping.tsv')
+    #if(os.access(UNP_mapping, os.R_OK)):
+        #FH = open(UNP_mapping)
+        #for line in FH:
+            #line = line.split()
+            #if(line[0] == pdbid):
+                #UNP_ACCS[line[1]] = line[2]
+    
+    #for i in xrange(len(mmcif_dict['_struct_ref_seq.pdbx_strand_id'])):
+        #accession = None
+        #UNP_file = None
+        #if(mmcif_dict['_struct_ref_seq.pdbx_strand_id'][i] in UNP_ACCS):
+            #accession = UNP_ACCS[mmcif_dict['_struct_ref_seq.pdbx_strand_id'][i]]
+            #UNP_file = os.path.join(UNIPROT_DIR, accession[-1], accession+".txt")
+        
+        #if(accession is None or not os.access(UNP_file, os.R_OK)):
+            ## Try another accession
+            #accession = mmcif_dict['_struct_ref_seq.pdbx_db_accession'][i]
+            #UNP_file = os.path.join(UNIPROT_DIR, accession[-1], accession+".txt")
+        
+        #if(accession is None or not os.access(UNP_file, os.R_OK)):
+            ## Can't find an existing accession for this chain
+            #continue
+        
+        #if(accession not in UNP_RECORD):
+            #handle = open(UNP_file)
+            #UNP_RECORD[accession] = SwissProt.read(handle)
+            #handle.close()
+            #names = []
+            #description = UNP_RECORD[accession].description
+            #description = re.sub(r'{.*?}', '', description)
+            #description = re.split(':|;',description)
+            #for i in xrange(len(description)):
+                #description[i] = description[i].strip()
+                #if(re.search('^Full|^Short',description[i])):
+                    #names.append(description[i].split('=')[1])
+            #UNP_RECORD[accession].description = names
+    
+    ## Get CATH Data
+    #search = False
+    #if(os.access(os.path.join(CATH_DIR,'cath-domain-list.txt'), os.R_OK)):
+        #try:
+            #search = subprocess.check_output(['grep', pdbid, os.path.join(CATH_DIR,'cath-domain-list.txt')])
+        #except subprocess.CalledProcessError as e:
+            #pass
+    #CATH_DOMAINS = {}
+    #if(search):
+        #search = search.strip('\n').split('\n')
+        #for line in search:
+            #line = line.split()
+            #chain = line[0][4]
+            #cath_H = '.'.join(line[1:5])
+            #cath_T = '.'.join(line[1:4])
+            #cath_A = '.'.join(line[1:3])
+            #cath_C = line[1]
+            #if(chain in CATH_DOMAINS):
+                #if(cath_H not in CATH_DOMAINS[chain]['H']):
+                    #CATH_DOMAINS[chain]['H'].append(cath_H)
+                #if(cath_T not in CATH_DOMAINS[chain]['T']):
+                    #CATH_DOMAINS[chain]['T'].append(cath_T)
+                #if(cath_A not in CATH_DOMAINS[chain]['A']):
+                    #CATH_DOMAINS[chain]['A'].append(cath_A)
+                #if(cath_C not in CATH_DOMAINS[chain]['C']):
+                    #CATH_DOMAINS[chain]['C'].append(cath_C)
+            #else:
+                #CATH_DOMAINS[chain] = {
+                    #'H': [cath_H],
+                    #'T': [cath_T],
+                    #'A': [cath_A],
+                    #'C': [cath_C]
+                #}
     clusters = ["30", "40", "50", "70", "90", "95", "100"]
-    prefix = pdbid[-1]
-    
-    # Get UNIPROT data
-    UNP_ACCS = {}
-    UNP_RECORD = {}
-    UNP_mapping = os.path.join(SIFTS_DIR, prefix, 'uniprot_mapping.tsv')
-    if(os.access(UNP_mapping, os.R_OK)):
-        FH = open(UNP_mapping)
-        for line in FH:
-            line = line.split()
-            if(line[0] == pdbid):
-                UNP_ACCS[line[1]] = line[2]
-    
-    for i in xrange(len(mmcif_dict['_struct_ref_seq.pdbx_strand_id'])):
-        accession = None
-        UNP_file = None
-        if(mmcif_dict['_struct_ref_seq.pdbx_strand_id'][i] in UNP_ACCS):
-            accession = UNP_ACCS[mmcif_dict['_struct_ref_seq.pdbx_strand_id'][i]]
-            UNP_file = os.path.join(UNIPROT_DIR, accession[-1], accession+".txt")
-        
-        if(accession is None or not os.access(UNP_file, os.R_OK)):
-            # Try another accession
-            accession = mmcif_dict['_struct_ref_seq.pdbx_db_accession'][i]
-            UNP_file = os.path.join(UNIPROT_DIR, accession[-1], accession+".txt")
-        
-        if(accession is None or not os.access(UNP_file, os.R_OK)):
-            # Can't find an existing accession for this chain
-            continue
-        
-        if(accession not in UNP_RECORD):
-            handle = open(UNP_file)
-            UNP_RECORD[accession] = SwissProt.read(handle)
-            handle.close()
-            names = []
-            description = UNP_RECORD[accession].description
-            description = re.sub(r'{.*?}', '', description)
-            description = re.split(':|;',description)
-            for i in xrange(len(description)):
-                description[i] = description[i].strip()
-                if(re.search('^Full|^Short',description[i])):
-                    names.append(description[i].split('=')[1])
-            UNP_RECORD[accession].description = names
-    
-    # Get CATH Data
-    search = False
-    if(os.access(os.path.join(CATH_DIR,'cath-domain-list.txt'), os.R_OK)):
-        try:
-            search = subprocess.check_output(['grep', pdbid, os.path.join(CATH_DIR,'cath-domain-list.txt')])
-        except subprocess.CalledProcessError as e:
-            pass
-    CATH_DOMAINS = {}
-    if(search):
-        search = search.strip('\n').split('\n')
-        for line in search:
-            line = line.split()
-            chain = line[0][4]
-            cath_H = '.'.join(line[1:5])
-            cath_T = '.'.join(line[1:4])
-            cath_A = '.'.join(line[1:3])
-            cath_C = line[1]
-            if(chain in CATH_DOMAINS):
-                if(cath_H not in CATH_DOMAINS[chain]['H']):
-                    CATH_DOMAINS[chain]['H'].append(cath_H)
-                if(cath_T not in CATH_DOMAINS[chain]['T']):
-                    CATH_DOMAINS[chain]['T'].append(cath_T)
-                if(cath_A not in CATH_DOMAINS[chain]['A']):
-                    CATH_DOMAINS[chain]['A'].append(cath_A)
-                if(cath_C not in CATH_DOMAINS[chain]['C']):
-                    CATH_DOMAINS[chain]['C'].append(cath_C)
-            else:
-                CATH_DOMAINS[chain] = {
-                    'H': [cath_H],
-                    'T': [cath_T],
-                    'A': [cath_A],
-                    'C': [cath_C]
-                }
-    
+    path = os.path.join(MAPPING_DIR, pdbid[-1].lower(), "{}.json".format(pdbid))
+    if(os.access(path, os.R_OK)):
+        with open(path) as FH:
+            MAPPINGS = json.load(FH)
+        found = True
+    else:
+        found = False
     # Add data to each chain
     for model in models:
         for chain in model["chains"]:
             cid = chain['au_chain_id']
             for cluster in clusters:
                 # Get sequence clusters from PDB
-                if(os.access("{}/{}/{}.{}_{}.xml".format(PDB_DIR, prefix, pdbid, cid, cluster), os.R_OK)):
-                    REP = open("{}/{}/{}.{}_{}.xml".format(PDB_DIR, prefix, pdbid, cid, cluster))
-                    data = xmltodict.parse(REP.read())
-                    REP.close()
-                    if(data['representatives']):
-                        chain['sequence_clusters'][cluster] = data['representatives']['pdbChain']['@name']
-                    else:
-                        chain['sequence_clusters'][cluster] = 'N/A'
+                #if(os.access("{}/{}/{}.{}_{}.xml".format(PDB_DIR, prefix, pdbid, cid, cluster), os.R_OK)):
+                    #REP = open("{}/{}/{}.{}_{}.xml".format(PDB_DIR, prefix, pdbid, cid, cluster))
+                    #data = xmltodict.parse(REP.read())
+                    #REP.close()
+                    #if(data['representatives']):
+                        #chain['sequence_clusters'][cluster] = data['representatives']['pdbChain']['@name']
+                    #else:
+                        #chain['sequence_clusters'][cluster] = 'N/A'
+                #else:
+                    #chain['sequence_clusters'][cluster] = 'N/A'
+                if(found):
+                    chain['sequence_clusters'][cluster] = MAPPINGS[cid]['clusters'][cluster]
                 else:
                     chain['sequence_clusters'][cluster] = 'N/A'
             # Add UNIPROT
-            if(cid in UNP_ACCS):
-                accession = UNP_ACCS[cid]
-            elif(chain_map[cid] in UNP_ACCS):
-                accession = UNP_ACCS[chain_map[cid]]
-            else:
-                accession = None
+            #if(cid in UNP_ACCS):
+                #accession = UNP_ACCS[cid]
+            #elif(chain_map[cid] in UNP_ACCS):
+                #accession = UNP_ACCS[chain_map[cid]]
+            #else:
+                #accession = None
             
-            if(accession in UNP_RECORD):
-                record = UNP_RECORD[accession]
-                chain['uniprot_accession'] = record.accessions
-                chain['uniprot_names'] = record.description
-                chain['organism'] = record.organism
-                chain["GO_molecular_function"] = []
-                chain["GO_biological_process"] = []
-                chain["GO_cellular_component"] = []
-                for DR in record.cross_references:
-                    if(DR[0] == 'GO'):
-                        if(DR[2][0] == "F"):
-                            chain["GO_molecular_function"].append({
-                                "GO_ID": DR[1][3:],
-                                "description": DR[2][2:]
-                            })
-                        elif(DR[2][0] == "P"):
-                            chain["GO_biological_process"].append({
-                                "GO_ID": DR[1][3:],
-                                "description": DR[2][2:]
-                            })
-                        elif(DR[2][0] == "C"):
-                            chain["GO_cellular_component"].append({
-                                "GO_ID": DR[1][3:],
-                                "description": DR[2][2:]
-                            })
+            #if(accession in UNP_RECORD):
+                #record = UNP_RECORD[accession]
+                #chain['uniprot_accession'] = record.accessions
+                #chain['uniprot_names'] = record.description
+                #chain['organism'] = record.organism
+                #chain["GO_molecular_function"] = []
+                #chain["GO_biological_process"] = []
+                #chain["GO_cellular_component"] = []
+                #for DR in record.cross_references:
+                    #if(DR[0] == 'GO'):
+                        #if(DR[2][0] == "F"):
+                            #chain["GO_molecular_function"].append({
+                                #"GO_ID": DR[1][3:],
+                                #"description": DR[2][2:]
+                            #})
+                        #elif(DR[2][0] == "P"):
+                            #chain["GO_biological_process"].append({
+                                #"GO_ID": DR[1][3:],
+                                #"description": DR[2][2:]
+                            #})
+                        #elif(DR[2][0] == "C"):
+                            #chain["GO_cellular_component"].append({
+                                #"GO_ID": DR[1][3:],
+                                #"description": DR[2][2:]
+                            #})
+            #else:
+                #chain['uniprot_accession'] = ['N/A']
+                #chain['uniprot_names'] = ['N/A']
+                #chain['organism'] = 'N/A'
+                #chain["GO_molecular_function"] = [{"description": 'N/A', "GO_ID": 'N/A'}]
+                #chain["GO_biological_process"] = [{"description": 'N/A', "GO_ID": 'N/A'}]
+                #chain["GO_cellular_component"] = [{"description": 'N/A', "GO_ID": 'N/A'}]
+            if(found):
+                chain['uniprot_accession'] = MAPPINGS[cid]['uniprot']["accession"]
+                chain['uniprot_names'] = MAPPINGS[cid]['uniprot']["names"]
+                chain['organism'] = MAPPINGS[cid]['uniprot']["organism"]
             else:
                 chain['uniprot_accession'] = ['N/A']
                 chain['uniprot_names'] = ['N/A']
                 chain['organism'] = 'N/A'
-                chain["GO_molecular_function"] = [{"description": 'N/A', "GO_ID": 'N/A'}]
-                chain["GO_biological_process"] = [{"description": 'N/A', "GO_ID": 'N/A'}]
-                chain["GO_cellular_component"] = [{"description": 'N/A', "GO_ID": 'N/A'}]
+            # Add GO
+            if(found):
+                chain['GO_molecular_function'] = MAPPINGS[cid]['go']["molecular_function"]
+                chain['GO_biological_process'] = MAPPINGS[cid]['go']["biological_process"]
+                chain['GO_cellular_component'] = MAPPINGS[cid]['go']["cellular_component"]
+            else:
+                chain['GO_molecular_function'] = ['N/A']
+                chain['GO_biological_process'] = ['N/A']
+                chain['GO_cellular_component'] = ['N/A']
             # Add CATH
-            if(cid in CATH_DOMAINS):
-                chain['cath_homologous_superfamily'] = CATH_DOMAINS[cid]['H']
-                chain['cath_topology'] = CATH_DOMAINS[cid]['T']
-                chain['cath_architecture'] = CATH_DOMAINS[cid]['A']
-                chain['cath_class'] = CATH_DOMAINS[cid]['C']
+            if(found):
+                chain['cath_homologous_superfamily'] = MAPPINGS[cid]['cath']['H']
+                chain['cath_topology'] = MAPPINGS[cid]['cath']['T']
+                chain['cath_architecture'] = MAPPINGS[cid]['cath']['A']
+                chain['cath_class'] = MAPPINGS[cid]['cath']['C']
             else:
                 chain['cath_homologous_superfamily'] = ['N/A']
                 chain['cath_topology'] = ['N/A']
@@ -838,7 +868,7 @@ def process(prefix, N, COMPONENTS, REGEXES, IDs,
     
     # Load external data if annotate is true
     if(mmcif_dict is not None):
-        addExternalData(OUT, prefix, mmcif_dict, meta_data["assembly_chains"])
+        addExternalData(OUT, prefix)
     
     # Write output to JSON
     PRO = open("{}-protein.json".format(prefix),'w')

@@ -274,19 +274,19 @@ for line in FH:
         if(DR[0] == 'GO' and DR[1] not in PDBIDS[pdbid][chain]['go']['seen']):
             if(DR[2][0] == "F"):
                 PDBIDS[pdbid][chain]['go']["molecular_function"].append({
-                    "GO_ID": DR[1],
+                    "GO_ID": DR[1][3:],
                     "description": DR[2][2:]
                 })
                 PDBIDS[pdbid][chain]['go']['seen'].add(DR[1])
             elif(DR[2][0] == "P"):
                 PDBIDS[pdbid][chain]['go']["biological_process"].append({
-                    "GO_ID": DR[1],
+                    "GO_ID": DR[1][3:],
                     "description": DR[2][2:]
                 })
                 PDBIDS[pdbid][chain]['go']['seen'].add(DR[1])
             elif(DR[2][0] == "C"):
                 PDBIDS[pdbid][chain]['go']["cellular_component"].append({
-                    "GO_ID": DR[1],
+                    "GO_ID": DR[1][3:],
                     "description": DR[2][2:]
                 })
                 PDBIDS[pdbid][chain]['go']['seen'].add(DR[1])
@@ -313,7 +313,7 @@ for line in FH:
         continue
     pdbid = line[0].lower().strip()
     chain = line[1].strip()
-    go = line[5].strip()
+    go = line[5].strip()[3:]
     
     if(pdbid not in PDBIDS):
         continue
