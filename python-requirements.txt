@@ -1,0 +1,8 @@
+xmltodict
+numpy
+networkx == 1.11
+biopython == 1.72
+freesasa >= 2.0.3
+cogent == 1.9
+scikit-learn >= 0.18.1
+
