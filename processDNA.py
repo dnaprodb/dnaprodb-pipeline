@@ -4,6 +4,7 @@ import os
 import subprocess
 import math
 import collections
+import operator
 import networkx as nx
 from itertools import permutations
 from networkx.algorithms import bipartite
@@ -296,14 +297,15 @@ def addBackboneLinkages(G, model, nuc_dict, COMPONENTS):
             continue
         
         seen.append(Pid)
-        G.add_edge(P3id, P5id, type="link")
-        link_list.append({
+        data = {
             "3p_nuc_id": P3id,
             "3p_atom": P3atom,
             "5p_nuc_id": P5id,
             "5p_atom": P5atom,
             "link_distance": float(dist)
-        })
+        }
+        G.add_edge(P3id, P5id, type="link", p3=data["3p_nuc_id"], p5=data["5p_nuc_id"])
+        link_list.append(data)
     return link_list
 
 def getNucleotideData(nt, model, COMPONENTS):
@@ -1833,14 +1835,14 @@ def process(prefix, N, REGEXES, COMPONENTS, META_DATA, quiet=True):
                 },
                 "num_nucleotides": None
             }
-            lG = nx.Graph() # link sub-graph
+            lG = nx.DiGraph() # link sub-graph
             sG = nx.Graph() # stack sub-graph
             pG = nx.Graph() # pair sub-graph
             
             # Add edges to sub-graphs
             for u,v,d in entity.edges_iter(data=True):
                 if(d["type"] == "link"):
-                    lG.add_edge(u, v)
+                    lG.add_edge(d["p3"], d["p5"])
                 elif(d["type"] == "pair"):
                     pG.add_edge(u, v)
                 elif(d["type"] == "stack"):
@@ -1857,7 +1859,7 @@ def process(prefix, N, REGEXES, COMPONENTS, META_DATA, quiet=True):
                 eout["stacks"].append(getHash(s))
             
             # Add strands to entity
-            strands = list(nx.connected_component_subgraphs(lG))
+            strands = list(nx.weakly_connected_component_subgraphs(lG))
             strand_dict = {}
             for s in strands:
                 P3end = None
@@ -1878,16 +1880,27 @@ def process(prefix, N, REGEXES, COMPONENTS, META_DATA, quiet=True):
                     }
                 }
                 # Identify the 5' and 3' ends of the strand
-                for u,d in s.degree_iter():
-                    if(d == 1):
-                        # check if 5' or 3' end
-                        for l in links:
-                            if(l['3p_nuc_id'] == u):
-                                P3end = u
-                                break
-                            elif(l['5p_nuc_id'] == u):
-                                P5end = u
-                                break
+                nid_list = []
+                for u in s.nodes():
+                    ch, num, ins = u.split('.')
+                    nid_list.append((u, int(num), ins))
+                    if(s.in_degree(u) == 1 and s.out_degree(u) == 0):
+                        P5end = u
+                    elif(s.in_degree(u) == 0 and s.out_degree(u) == 1):
+                        P3end = u
+                if(P3end is None or P5end is None):
+                    # DNA may be circular - use lowest and highest nucleotide index
+                    nid_list.sort(key=operator.itemgetter(1,2))
+                    
+                    # determine strand sense
+                    if(lG.has_edge(nid_list[0][0], nid_list[1][0])):
+                        # strand is in ascending order
+                        P3end = nid_list[0][0]
+                        P5end = nid_list[-1][0]
+                    else:
+                        # strand is in descending order
+                        P5end = nid_list[0][0]
+                        P3end = nid_list[-1][0]
                 sd["5p_end"] = P5end
                 sd["3p_end"] = P3end
                 
