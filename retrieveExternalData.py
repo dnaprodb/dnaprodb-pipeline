@@ -10,12 +10,12 @@ import urllib2
 import re
 import xmltodict
 from dnaprodb_utils import C
-from Bio.PDB.MMCIF2Dict import MMCIF2Dict
+#from Bio.PDB.MMCIF2Dict import MMCIF2Dict
 from Bio import SwissProt
+from Bio import SeqIO
 
 arg_parser = argparse.ArgumentParser()
 arg_parser.add_argument("-D", "--no_databases", action='store_true')
-arg_parser.add_argument("-P", "--no_pdb", action='store_true')
 arg_parser.add_argument("-U", "--no_uniprot", action='store_true')
 args = arg_parser.parse_args()
 
@@ -86,30 +86,6 @@ else:
             fileName = prefix
             DATA[i] = (url, fileName, dirName)
 
-# Download PDB Sequence Cluster Files
-#if(not args.no_pdb):
-    #print("Downloading PDB sequence cluster representatives")
-    #for cif_file in glob.glob(os.path.join(CIF_DIR, "*.cif")):
-        #mmcif_dict = MMCIF2Dict(cif_file)
-        #pdbid = cif_file[-8:-4].lower()
-        #suffix = pdbid[-1]
-        #for i in xrange(len(mmcif_dict['_struct_ref_seq.pdbx_strand_id'])):
-            #cid = mmcif_dict['_struct_ref_seq.pdbx_strand_id'][i]
-            #for cluster in CLUSTERS:
-                #fileName = "{}.{}_{}.xml".format(pdbid, cid, cluster)
-                #path = os.path.join(PDB_DIR, suffix, fileName)
-                #REPurl = "http://www.rcsb.org/pdb/rest/representatives?structureId={0}.{1}&cluster={2}".format(pdbid,cid,cluster)
-                #try:
-                    #REP = urllib2.urlopen(REPurl)
-                    #data = REP.read()
-                    #REP.close()
-                
-                    #PDBOUT = open(path, "w")
-                    #PDBOUT.write(data)
-                    #PDBOUT.close()
-                #except (urllib2.HTTPError, urllib2.URLError):
-                    #print("{}: PDBError".format(pdbid))
-
 # Download UniProt Data
 if(not args.no_uniprot):
     print("Downloading UniProt files")
@@ -132,6 +108,21 @@ if(not args.no_uniprot):
     # split UniProt files
     print("Splitting UniProt data files")
     subprocess.call(["splitUNIPROT.pl", path, UNIPROT_DIR])
+
+# Download PDB sequence files
+print("Downloading PDB sequences")
+url = "https://www.rcsb.org/pdb/download/downloadFastaFiles.do"
+params = {
+    'compressionType': 'uncompressed',
+    'structureIdList': ' '.join(PDBIDS.keys())
+}
+data = urllib.urlencode(params)
+request = urllib2.Request(url, data)
+response = urllib2.urlopen(request)
+path = os.path.join(PDB_DIR, "sequences.dat")
+FH = open(path, 'w')
+FH.write(response.read())
+FH.close()
 
 # Generate PDB sequence clusters
 print("Generating Sequence Clusters")
@@ -171,13 +162,13 @@ template = {
         "seen": set()
     },
     "clusters": {
-        "30": None,
-        "40": None,
-        "50": None,
-        "70": None,
-        "90": None,
-        "95": None,
-        "100": None
+        "30": 'N/A',
+        "40": 'N/A',
+        "50": 'N/A',
+        "70": 'N/A',
+        "90": 'N/A',
+        "95": 'N/A',
+        "100": 'N/A'
     },
     "chain_id": None
 }
@@ -298,7 +289,7 @@ GO_IDS = {}
 FH = open(os.path.join(DATA[10][2], DATA[10][1]))
 for line in FH:
     if(line.strip() == "[Term]"):
-        goid = next(FH)[3:].strip()
+        goid = next(FH)[3:].strip()[3:]
         name = next(FH)[5:].strip()
         branch = next(FH)[10:].strip()
         GO_IDS[goid] = (name, branch)
@@ -326,6 +317,21 @@ for line in FH:
     PDBIDS[pdbid][chain]['go']['seen'].add(go)
 FH.close()
 
+# ensure all PDBID chains are included
+print("Filling in any missing chains")
+sequences = SeqIO.parse(os.path.join(PDB_DIR, 'sequences.dat'), 'fasta')
+for record in sequences:
+    pdbid, chain = record.id.split('|')[0].split(':')
+    pdbid = pdbid.lower()
+    if(pdbid not in PDBIDS):
+        continue
+    elif(chain in PDBIDS[pdbid]):
+        continue
+    else:
+        # add the chain
+        PDBIDS[pdbid][chain] = copy.deepcopy(template)
+        PDBIDS[pdbid][chain]["chain_id"] = chain
+
 # write PDBID data to file
 print("Writing PDB id info to file")
 for pdbid in PDBIDS:
@@ -334,17 +340,6 @@ for pdbid in PDBIDS:
         ckey = "{}_{}".format(pdbid.upper(), chain)
         # add sequence clusters
         for cluster in CLUSTERS:
-            #path = os.path.join(PDB_DIR, d, "{}.{}_{}.xml".format(pdbid, chain, cluster))
-            #if(os.access(path, os.R_OK)):
-            #    REP = open(path)
-            #    data = xmltodict.parse(REP.read())
-            #    REP.close()
-            #    if(data['representatives']):
-            #        PDBIDS[pdbid][chain]["clusters"][cluster] = data['representatives']['pdbChain']['@name']
-            #    else:
-            #        PDBIDS[pdbid][chain]["clusters"][cluster] = 'N/A'
-            #else:
-            #    PDBIDS[pdbid][cid]["clusters"][cluster] = 'N/A'
             if(ckey in CLUSTER_MAP[cluster]):
                 PDBIDS[pdbid][chain]["clusters"][cluster] = CLUSTER_MAP[cluster][ckey]
             else:
