@@ -1,0 +1,6 @@
+*.pyc
+*.bak
+dnaprodb/data/components.cif
+dnaprodb/data/components.txt
+rsync.exclude
+run_rsync.sh
