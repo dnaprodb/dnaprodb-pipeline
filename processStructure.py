@@ -120,7 +120,7 @@ class Protein_select(Select):
         return not atom.is_disordered()
 
 def timedOut(signum, frame):
-    log("Job took longer than {} seconds to complete. Aborting.".format(__TIMEOUT_LENGTH), PDBID)
+    log("Job took longer than {} seconds to complete. Aborting.".format(__TIMEOUT_LENGTH), FILE_NAME)
 
 def assignElement(fullname):
     """Tries to guess element from atom name if not recognised."""
@@ -928,7 +928,7 @@ def writeStructures(pdbid, assembly, filter_chains, COMPONENTS, c=True, d=True, 
         pname = "{}-protein.pdb".format(pdbid)
         io.save(pname, Protein_select(filter_chains, COMPONENTS))
 
-def main(pdbid):
+def main(file_name):
     """This module processes a PDB or mmCIF file and performs the 
     following functions:
     1. Builds the biological assembly for a given mmCIF file. If a PDB 
@@ -944,10 +944,11 @@ def main(pdbid):
         A PDB id or prefex of the file to be processed. Should be named 
         either 'pdbid'.pdb or 'pdbid'.cif. 
     """
+    pdbid, ext = file_name.split('.')
     print(("Structure ID: {}".format(pdbid)))
     print(("BioPython Version: {}".format(BPV)))
-    cif_file = "{}.cif".format(pdbid)
-    pdb_file = "{}.pdb".format(pdbid)
+    #cif_file = "{}.cif".format(pdbid)
+    #pdb_file = "{}.pdb".format(pdbid)
     
     # Store various data needed later
     META_DATA = {
@@ -974,18 +975,18 @@ def main(pdbid):
             "x3dna-snap": "beta-r10-2017apr10"
         }
     }
-    if(os.access(cif_file, os.R_OK)):
+    if ext == "cif":
         # Process mmCIF file if exists
         parser = MMCIFParser(QUIET=True)
-        asymmetric_unit = parser.get_structure(pdbid, cif_file)
-        mmcif_dict = MMCIF2Dict(cif_file)
+        asymmetric_unit = parser.get_structure(pdbid, file_name)
+        mmcif_dict = MMCIF2Dict(file_name)
         
         # Create the biological assembly(s)
         assembly, filter_chains, N = buildAssemblies(pdbid, asymmetric_unit, mmcif_dict, META_DATA)
         PDB = False
     elif(os.access(pdb_file, os.R_OK)):
         # Process PDB file if exists
-        assembly, filter_chains, N = processPDBFile(pdbid, pdb_file, META_DATA)
+        assembly, filter_chains, N = processPDBFile(pdbid, file_name, META_DATA)
         PDB = True
         mmcif_dict = None
     else:
@@ -1133,8 +1134,8 @@ def main(pdbid):
 ########################################################################
 # Get arguments
 parser = argparse.ArgumentParser()
-parser.add_argument("pdbid",
-                help="PDB identifier of a protein-DNA complex structure file.")
+parser.add_argument("file_name",
+                help="PDB or mmCIF file of a protein-DNA complex structure.")
 parser.add_argument("-p", "--pdb2pqr", dest="pdb2pqr", action='store_true',
                 help="Process the structure with PDB2PQR.")
 
@@ -1162,7 +1163,7 @@ group3.add_argument("-M", "--no_meta", dest="meta", action='store_false',
 parser.set_defaults(clean=True, pdb2pqr=False, ensemble=True, meta=False, debug_dna=False)
 args = parser.parse_args()
 
-PDBID = args.pdbid
+FILE_NAME = args.file_name
 CLEAN_STRUCTURE = args.clean
 PRE_PDB2PQR = args.pdb2pqr
 ENSEMBLE = args.ensemble
@@ -1181,5 +1182,5 @@ REGEXES = Regexes(regexes=r, components=COMPONENTS)
 if __name__ == '__main__':
     signal.signal(signal.SIGALRM, timedOut)
     signal.alarm(__TIMEOUT_LENGTH)
-    main(PDBID)
+    main(FILE_NAME)
     signal.alarm(0)
