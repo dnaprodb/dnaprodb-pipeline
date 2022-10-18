@@ -20,7 +20,9 @@ cd dnaprodb-back
 pip install -r python-requirements.txt
 ```
 
-Dependencies
+### Dependencies
+In addition to the python packages contained in `python-requirments.txt`, dnaprodb relies on a variety of command line tools that are invoked by the processing scripts and must be available on the system path. 
+
 reduce - 
 hbplus - 
 Curves -
@@ -29,3 +31,6 @@ pdb2pqr -
 dssr - 
 dssp - 
 SNAP - 
+
+## Run Instructions
+To run the pipeline, 
