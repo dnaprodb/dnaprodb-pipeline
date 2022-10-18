@@ -11,8 +11,8 @@ from Bio.PDB.PDBParser import PDBParser
 from Bio.PDB import NeighborSearch
 from Bio.PDB.PDBIO import Select
 from Bio.PDB import PDBIO
-from cogent.struct.knots import inc_length
-from cogent.struct.rna2d import Pairs
+#from cogent.struct.knots import inc_length
+#from cogent.struct.rna2d import Pairs
 from dnaprodb_utils import log, getHash, getID, C
 from dnaprodb_utils import ATOM_RE
 
@@ -23,7 +23,8 @@ import sys
 #import matplotlib.pyplot as plt
 #from mpl_toolkits.mplot3d import Axes3D
 
-import RNA # viennaRNA package 
+#import RNA # viennaRNA package 
+from functools import reduce
 
 np.warnings.filterwarnings('ignore')
 
@@ -139,17 +140,17 @@ def runDSSR(prefix, N, quiet=True):
         The file prefix.
     """
     fileName = "{}.pdb".format(prefix)
-    args = ["dssr", "--i={}".format(fileName), "--o={}-dssr.json".format(prefix), "--json", "--more", "--idstr=long", "--non-pair"]
+    args = ["x3dna-dssr", "--i={}".format(fileName), "--o={}-dssr.json".format(prefix), "--json", "--more", "--idstr=long", "--non-pair"]
     if(N > 1):
         args.append("--nmr")
     if(quiet):
         FNULL = open(os.devnull, 'w')
         subprocess.call(args, stdout=FNULL, stderr=FNULL)
-        subprocess.call(["dssr", "--cleanup"],stdout=FNULL, stderr=FNULL)
+        subprocess.call(["x3dna-dssr", "--cleanup"],stdout=FNULL, stderr=FNULL)
         FNULL.close()
     else:
         subprocess.call(args)
-        subprocess.call(["dssr", "--cleanup"])
+        subprocess.call(["x3dna-dssr", "--cleanup"])
     
     with open("{}-dssr.json".format(prefix)) as FH:
         DSSR = json.load(FH, object_pairs_hook=collections.OrderedDict)
@@ -196,10 +197,10 @@ def convertId(id_string):
         A DSSR nucleotide id string.
     """
     components = id_string.split('.')
-    if(components[4] == ''):
-        components[4] = ' '
+    if(components[5] == ''):
+        components[5] = ' '
     
-    return '.'.join((components[1], components[3], components[4]))
+    return '.'.join((components[2], components[4], components[5]))
 
 def addBackboneLinkages(G, model, nuc_dict, COMPONENTS):
     """Adds edges between nodes in G, where the edge represents a 
@@ -370,8 +371,8 @@ def getPairData(pair):
     data = {
         "id1": convertId(pair["nt1"]),
         "id2": convertId(pair["nt2"]),
-        "name1": pair["nt1"].split('.')[2],
-        "name2": pair["nt2"].split('.')[2],
+        "name1": pair["nt1"].split('.')[3],
+        "name2": pair["nt2"].split('.')[3],
         "origin": pair["frame"]["origin"],
         "x_axis": pair["frame"]["x_axis"],
         "y_axis": pair["frame"]["y_axis"],
@@ -522,7 +523,7 @@ def _assignNucleotideAtoms(nuc, nucid, comp, elements, edge, sg, wg, center, ori
         # Check number of times the point-center line segement crosses
         # the minor groove edge
         crossing_count = 0
-        for i in xrange(len(edge)-1):
+        for i in range(len(edge)-1):
             if(_segmentsIntersect(point, center, edge[i], edge[i+1])):
                 crossing_count += 1
         
@@ -591,7 +592,7 @@ def _addAtomEdges(G, nuc, nid, comp, elements, origin, x_axis, y_axis, a, b, c):
     c: float
         constant of a line in the minor groove region
     """
-    for i in xrange(len(comp["_chem_comp_bond.atom_id_1"])):
+    for i in range(len(comp["_chem_comp_bond.atom_id_1"])):
         atm1 = comp["_chem_comp_bond.atom_id_1"][i]
         atm2 = comp["_chem_comp_bond.atom_id_2"][i]
         if(re.search(comp["sugar_atoms_re"], atm1) or re.search(comp["phosphate_atoms_re"], atm1)):
@@ -691,11 +692,11 @@ def partitionGrooveAtoms(model, pair, nuc_dict, COMPONENTS, REGEXES):
     A = nx.Graph()
     # Add element assignments to each atom in components
     elements1 = {}
-    for i in xrange(len(comp1["_chem_comp_atom.type_symbol"])):
+    for i in range(len(comp1["_chem_comp_atom.type_symbol"])):
         elements1[comp1["_chem_comp_atom.atom_id"][i]] =  comp1["_chem_comp_atom.type_symbol"][i]
     
     elements2 = {}
-    for i in xrange(len(comp2["_chem_comp_atom.type_symbol"])):
+    for i in range(len(comp2["_chem_comp_atom.type_symbol"])):
         elements2[comp2["_chem_comp_atom.atom_id"][i]] =  comp2["_chem_comp_atom.type_symbol"][i]
     
     _addAtomEdges(A, n1, nid1, comp1, elements1, origin, x_axis, y_axis, a, b, c)
@@ -1075,7 +1076,7 @@ def helixSegments(sG, pG, dssr, nucExplicitNumberMap, prefix, pDict, nucleotides
                     cpCount += 2.0*len(apu & apv)/(len(apu) + len(apv))
             
             summary["score"] = cpCount/len(pairs)
-            print("Helix score: {}".format(summary["score"]))
+            print(("Helix score: {}".format(summary["score"])))
             
             # Add shape parameters and helical axis 
             summary["shape_parameters"] = {}
@@ -1445,7 +1446,7 @@ def runCurves(prefix, pairs, nucExplicitNumberMap):
             log("Could not read groove widths from Curves output!", m.group(1), Exit=False)
             return mgw, MGW
         else:
-            sub_levels /= 2
+            sub_levels //= 2
         
         # Read in the groove width data
         mg = []
@@ -1473,6 +1474,7 @@ def runCurves(prefix, pairs, nucExplicitNumberMap):
         for i in li:
             s = max(0, i-sub_levels)
             e = min(len(mg), i+sub_levels+1)
+            
             m = np.nanmean(mg[s:e])
             M = np.nanmean(MG[s:e])
             mgw.append('NA' if np.isnan(m) else float(m))
@@ -1639,7 +1641,7 @@ def runAnalyze(helix, fileName, output, quiet=False):
 def getPairMap(data, pair_dict, nucleotides):
     pair_map = {}
     # Add non-WC pairs to pair table
-    for j in xrange(len(nucleotides)):
+    for j in range(len(nucleotides)):
         nid = nucleotides[j]
         pair_map[nid] = None
         if(nid in pair_dict):
@@ -1673,7 +1675,7 @@ def removeFalsePseudoknots(nuc_ids, pair_map, strand_data):
 
 def makePairTuples(ordered_ids, pair_map):
     pair_tuples = []
-    for i in xrange(len(ordered_ids)):
+    for i in range(len(ordered_ids)):
         if(pair_map[ordered_ids[i]] == None):
             pair_tuples.append((i, None))
         else:
@@ -1766,7 +1768,7 @@ def process(prefix, N, REGEXES, COMPONENTS, META_DATA, quiet=True):
             all_chains[cid]["ids"].append(nid)
             all_chains[cid]["sequence"].append(name)
             all_chains[cid]["index"].append(int(nt["index_chain"]))
-        for key in data["dbn"].keys()[1:]:
+        for key in list(data["dbn"].keys())[1:]:
             cid = key[-1]
             all_chains[cid]["ids"] = [n for i,n in sorted(zip(all_chains[cid]["index"], all_chains[cid]["ids"]))]
             all_chains[cid]["sequence"] = [n for i,n in sorted(zip(all_chains[cid]["index"], all_chains[cid]["sequence"]))]
@@ -1796,7 +1798,7 @@ def process(prefix, N, REGEXES, COMPONENTS, META_DATA, quiet=True):
             })
             
         
-        print("Number of DNA entities: {}".format(len(entities)))
+        print(("Number of DNA entities: {}".format(len(entities))))
         # Iterate over entities
         ecount = 0
         strandNum = {}
@@ -2004,7 +2006,7 @@ def process(prefix, N, REGEXES, COMPONENTS, META_DATA, quiet=True):
                     etype = htype+"/ssDNA"
                 else:
                     etype = "other"
-                print(etype, stotal, htotal) 
+                print((etype, stotal, htotal)) 
             else:
                 # Determine fraction of single-stranded nucleotides
                 stotal = 0
@@ -2015,11 +2017,11 @@ def process(prefix, N, REGEXES, COMPONENTS, META_DATA, quiet=True):
                     etype = "ssDNA"
                 else:
                     etype = "other"
-                print(etype, stotal)
+                print((etype, stotal))
             
             # Add groove assignments to helical segment pairs
             for helix in hseg:
-                for k in xrange(len(helix["ids1"])):
+                for k in range(len(helix["ids1"])):
                     pid = getHash(helix["ids1"][k], helix["ids2"][k])
                     partitionGrooveAtoms(model, pair_dict[pid], nuc_dict, COMPONENTS, REGEXES)
             eout["num_helical_segments"] = len(hseg)
@@ -2062,20 +2064,20 @@ def process(prefix, N, REGEXES, COMPONENTS, META_DATA, quiet=True):
                     ordered_ids += s["ids"]
             
             if(set(ordered_ids) != set(eout["nucleotides"])):
-                print(set(eout["nucleotides"]) - set(ordered_ids))
+                print((set(eout["nucleotides"]) - set(ordered_ids)))
                 log("DBN string length and number of nucleotides do not match.", prefix)
             
             # Get DBN information
             PAIR_MAP = getPairMap(edata, pair_dict, eout["nucleotides"])
             pair_tuples = makePairTuples(ordered_ids, PAIR_MAP)
-            PairObject = Pairs(pair_tuples)
-            if(PairObject.hasPseudoknots()):
-                print("Attemping to remove any false Pseudoknots")
-                # Try to remove any false pseudoknots we may have created
-                ordered_ids, pair_tuples = removeFalsePseudoknots(ordered_ids, PAIR_MAP, eout["strands"])
-                eout["visualization"]["contains_pseudoknots"] = Pairs(pair_tuples).hasPseudoknots()
-            eout["visualization"]["dbn"] = inc_length(pair_tuples).toVienna(len(ordered_ids))
-            eout["nucleotides"] = ordered_ids
+            # PairObject = Pairs(pair_tuples)
+            # if(PairObject.hasPseudoknots()):
+                # print("Attemping to remove any false Pseudoknots")
+                # # Try to remove any false pseudoknots we may have created
+                # ordered_ids, pair_tuples = removeFalsePseudoknots(ordered_ids, PAIR_MAP, eout["strands"])
+                # eout["visualization"]["contains_pseudoknots"] = Pairs(pair_tuples).hasPseudoknots()
+            # eout["visualization"]["dbn"] = inc_length(pair_tuples).toVienna(len(ordered_ids))
+            # eout["nucleotides"] = ordered_ids
             
             # Sort Strands
             si = []
@@ -2086,28 +2088,28 @@ def process(prefix, N, REGEXES, COMPONENTS, META_DATA, quiet=True):
             eout["id"] = [c for _, c in sorted(zip(si, eout["id"]))]
             eout["id"] = getHash(*eout["id"])
             
-            # Add radial layout coordinates
-            coords = RNA.get_xy_coordinates(eout["visualization"]["dbn"])
-            xs = np.array([coords.get(i).X for i in range(len(eout["visualization"]["dbn"]))])
-            ys = np.array([coords.get(i).Y for i in range(len(eout["visualization"]["dbn"]))])
-            xs -= np.mean(xs)
-            ys -= np.mean(ys)
-            scale = max(abs(np.max(xs)), abs(np.max(ys)), abs(np.min(xs)), abs(np.min(ys)))
-            xs /= scale
-            ys /= scale
-            i = 0
-            link_dist = []
-            for j in xrange(len(eout["nucleotides"])):
-                nid = eout["nucleotides"][j] #strand["ids"][j]
-                nuc_dict[nid]["graph_coordinates"]["radial"]["x"] = xs[i]
-                nuc_dict[nid]["graph_coordinates"]["radial"]["y"] = ys[i]
-                if(j+1 < len(eout["nucleotides"]) and strand_dict[nid]["strand_id"] == strand_dict[eout["nucleotides"][j+1]]["strand_id"]):
-                    link_dist.append(np.sqrt((xs[i+1]-xs[i])**2 + (ys[i+1]-ys[i])**2))
-                i += 1
-            if(len(link_dist) > 0):
-                eout["visualization"]["radial"]["link_distance"] = np.mean(link_dist)
-            else:
-                eout["visualization"]["radial"]["link_distance"] = None
+            # # Add radial layout coordinates
+            # coords = RNA.get_xy_coordinates(eout["visualization"]["dbn"])
+            # xs = np.array([coords.get(i).X for i in range(len(eout["visualization"]["dbn"]))])
+            # ys = np.array([coords.get(i).Y for i in range(len(eout["visualization"]["dbn"]))])
+            # xs -= np.mean(xs)
+            # ys -= np.mean(ys)
+            # scale = max(abs(np.max(xs)), abs(np.max(ys)), abs(np.min(xs)), abs(np.min(ys)))
+            # xs /= scale
+            # ys /= scale
+            # i = 0
+            # link_dist = []
+            # for j in range(len(eout["nucleotides"])):
+                # nid = eout["nucleotides"][j] #strand["ids"][j]
+                # nuc_dict[nid]["graph_coordinates"]["radial"]["x"] = xs[i]
+                # nuc_dict[nid]["graph_coordinates"]["radial"]["y"] = ys[i]
+                # if(j+1 < len(eout["nucleotides"]) and strand_dict[nid]["strand_id"] == strand_dict[eout["nucleotides"][j+1]]["strand_id"]):
+                    # link_dist.append(np.sqrt((xs[i+1]-xs[i])**2 + (ys[i+1]-ys[i])**2))
+                # i += 1
+            # if(len(link_dist) > 0):
+                # eout["visualization"]["radial"]["link_distance"] = np.mean(link_dist)
+            # else:
+                # eout["visualization"]["radial"]["link_distance"] = None
             
             # Add circular layout coordinates
             dl = 1.0
@@ -2119,8 +2121,8 @@ def process(prefix, N, REGEXES, COMPONENTS, META_DATA, quiet=True):
                 dtheta = dl/Rmin
                 R = Rmin
             i = 0
-            for j in xrange(len(eout["strands"])):
-                for k in xrange(len(eout["strands"][j]["ids"])):
+            for j in range(len(eout["strands"])):
+                for k in range(len(eout["strands"][j]["ids"])):
                     nid = eout["strands"][j]["ids"][k]
                     nuc_dict[nid]["graph_coordinates"]["circular"]["x"] = R*np.cos(i*dtheta)
                     nuc_dict[nid]["graph_coordinates"]["circular"]["y"] = R*np.sin(i*dtheta)

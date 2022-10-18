@@ -1,6 +1,6 @@
 {
-    "ROOT_DIR": "/mnt/data/Research/dnaprodb",
-    "DATA_PATH": "/mnt/data/Research/dnaprodb/data",
+    "ROOT_DIR": "/home/jared/Research/dnaprodb-back",
+    "DATA_PATH": "/home/jared/Research/dnaprodb-back/data",
     "DSSP_MAP": {
         "H": "H",
         "G": "H",

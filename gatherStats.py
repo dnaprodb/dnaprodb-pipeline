@@ -224,7 +224,7 @@ for d in DIRS:
                     for r in data["protein"]["residues"]:
                         resDict[r["id"]] = r
                 except:
-                    print("{}: json data has unexpected format.".format(pdbid))
+                    print(("{}: json data has unexpected format.".format(pdbid)))
                     continue
                 # Loop over model data
                 for model in data["interfaces"]["models"]:

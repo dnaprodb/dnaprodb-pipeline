@@ -74,7 +74,7 @@ class GeneralClassifier(freesasa.Classifier):
                 return self.radii['element'][self.getElement(rName, atomName)]
         else:
             # Unknown residue - make best guess for atom element
-            print("Unknown residue: {}".format(rName))
+            print(("Unknown residue: {}".format(rName)))
             return self.radii['element'][self.guessElement(atomName)]
     
     def classify(self, residueName, atomName):
@@ -93,7 +93,7 @@ class GeneralClassifier(freesasa.Classifier):
     
     def guessElement(self, atomName):
         """Tries to guess element from atom name if not recognised."""
-        print("Got :{}".format(atomName))
+        print(("Got :{}".format(atomName)))
         name = atomName.strip()
         if name.capitalize() not in self.radii["element"]:
             # Inorganic elements have their name shifted left by one position
@@ -114,10 +114,10 @@ class GeneralClassifier(freesasa.Classifier):
             else:
                 element = ""
             
-            print("Guessed(e): {}".format(element))
+            print(("Guessed(e): {}".format(element)))
             return element
         else:
-            print("Guessed(n): {}".format(name))
+            print(("Guessed(n): {}".format(name)))
             return name
 
 def sumSASA(structure, result, REGEXES, IDs):
@@ -198,7 +198,7 @@ def buildStructure(template, IDs,
         if(len(regex) != len(field_keys)):
             raise ValueError("Length of regex lists and field_keys must match!")
         for i in range(len(regex)):
-            if(isinstance(regex[i], re._pattern_type) or isinstance(regex[i], MatchField)):
+            if(isinstance(regex[i], re.Pattern) or isinstance(regex[i], MatchField)):
                 continue
             regex[i] = re.compile(regex[i])
     
@@ -207,7 +207,7 @@ def buildStructure(template, IDs,
         if(len(regex) != len(field_keys)):
             raise ValueError("Length of regex lists and field_keys must match!")
         for i in range(len(regex)):
-            if(isinstance(regex[i], re._pattern_type) or isinstance(regex[i], MatchField)):
+            if(isinstance(regex[i], re.Pattern) or isinstance(regex[i], MatchField)):
                 continue
             regex[i] = re.compile(regex[i])
     
@@ -234,7 +234,7 @@ def buildStructure(template, IDs,
         
         for regex in in_regex:
             matches = []
-            for j in xrange(len(regex)):
+            for j in range(len(regex)):
                 # every regex will be the same length as field_keys
                 matches.append(regex[j].search(makeRegexField(field_keys[j], aname_s, resn_s, resi_s, chain, ins)))
             if all(matches):
@@ -243,7 +243,7 @@ def buildStructure(template, IDs,
         
         for regex in ex_regex:
             matches = []
-            for j in xrange(len(regex)):
+            for j in range(len(regex)):
                 # every regex will be the same length as field_keys
                 matches.append(regex[j].search(makeRegexField(field_keys[j], aname_s, resn_s, resi_s, chain, ins)))
             if all(matches):
@@ -315,7 +315,7 @@ def getComplexBASA(model, classifier, REGEXES, NUCLEOTIDES, IDS, INT_IDS, dssp=N
     
     # Build Structures
     N = com.nAtoms()
-    for i in xrange(N):
+    for i in range(N):
         resn = com.residueName(i)
         if(REGEXES.isProtein(resn)):
             coord = com.coord(i)
@@ -540,16 +540,16 @@ def getComplexBASA(model, classifier, REGEXES, NUCLEOTIDES, IDS, INT_IDS, dssp=N
         else:
             labels = nucMtyLabel
         
-        for i in xrange(1, len(labels)+1):
+        for i in range(1, len(labels)+1):
             NUC[key]['fasa'][labels[i-1]] = NUC_DNA_SASA[key]['sasa'][i]
             NUC[key]['sasa'][labels[i-1]] = NUC_COMPLEX_SASA[key]['sasa'][i]
             NUC[key]['basa'][labels[i-1]] = NUC_DNA_SASA[key]['sasa'][i] - NUC_COMPLEX_SASA[key]['sasa'][i]
         
         if(detailed):
             NUC[key]['basa']['secondary_structure'] = {}
-            for i in xrange(1, len(labels)+1):
+            for i in range(1, len(labels)+1):
                 NUC[key]['basa']['secondary_structure'][labels[i-1]] = {}
-                for j in xrange(len(resSST)):
+                for j in range(len(resSST)):
                     if(key in INT_IDS["nuc_ids"]):
                         NUC[key]['basa']['secondary_structure'][labels[i-1]][resSST[j]] = NUC_SSC_SASA[j][key]['sasa'][i]-NUC_COMPLEX_SASA[key]['sasa'][i]
                     else:
@@ -593,13 +593,13 @@ def getComplexBASA(model, classifier, REGEXES, NUCLEOTIDES, IDS, INT_IDS, dssp=N
                     }
                     
                     # Add nucleotide BASA
-                    for i in xrange(1, len(nucLabels)+1):
+                    for i in range(1, len(nucLabels)+1):
                         INT[rkey+nkey]['nuc_basa'][nucLabels[i-1]] = SASA[nkey]['sasa'][i] - NUC[nkey]['sasa'][nucLabels[i-1]]
                     
                     # Add joint BASA
-                    for i in xrange(len(nucLabels)):
+                    for i in range(len(nucLabels)):
                         INT[rkey+nkey]['basa'][nucLabels[i]] = {}
-                        for j in xrange(len(resMtyLabel)):
+                        for j in range(len(resMtyLabel)):
                             INT[rkey+nkey]['basa'][nucLabels[i]][resMtyLabel[j]] = 0.0
             
             # Calculate B^(Nj)_g,m(Ri)
@@ -614,7 +614,7 @@ def getComplexBASA(model, classifier, REGEXES, NUCLEOTIDES, IDS, INT_IDS, dssp=N
                             nucLabels = nucGrvLabel
                         else:
                             nucLabels = nucMtyLabel
-                        for j in xrange(len(nucLabels)):
+                        for j in range(len(nucLabels)):
                             g = nucLabels[j]
                             INT[rkey+nkey]['basa'][g][m] += SASA[nkey]['sasa'][j+1] - NUC[nkey]['sasa'][g]
     
@@ -636,14 +636,14 @@ def getComplexBASA(model, classifier, REGEXES, NUCLEOTIDES, IDS, INT_IDS, dssp=N
                     INT[rkey+nkey]['basa']['total'] += SASA[rkey]['sasa'][0] - RES[rkey]['sasa']['total']
             
             # Calculate B^(Ri)_m,g(Nj)
-            for i in xrange(len(nucLabels)):
+            for i in range(len(nucLabels)):
                 g = nucLabels[i]
                 S = buildStructure(com, COMPLEX_IDS, ex_regex=[[REGEXES[nkey][i], nkey]], field_keys=["atom_name", "res_id"])
                 S.setRadiiWithClassifier(classifier)
                 SASA = sumSASA(S, freesasa.calc(S, parameters=opts), REGEXES, IDS['protein'])
                 for rkey in SASA:
                     if(rkey in RES and RES[rkey]['basa']['total'] > 0 and rkey in INT_IDS["res_ids"]):
-                        for j in xrange(len(resMtyLabel)):
+                        for j in range(len(resMtyLabel)):
                             m = resMtyLabel[j]
                             INT[rkey+nkey]['basa'][g][m] += SASA[rkey]['sasa'][j+1] - RES[rkey]['sasa'][m]
     
@@ -656,9 +656,9 @@ def getComplexBASA(model, classifier, REGEXES, NUCLEOTIDES, IDS, INT_IDS, dssp=N
         del INT[key]
     
     BASA = {
-        'residues': RES.values(),
-        'nucleotides': NUC.values(),
-        'interactions': INT.values()
+        'residues': list(RES.values()),
+        'nucleotides': list(NUC.values()),
+        'interactions': list(INT.values())
     }
     roundFloats(BASA,3)
     

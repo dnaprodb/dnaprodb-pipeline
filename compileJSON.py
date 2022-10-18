@@ -139,7 +139,7 @@ def getHelicoidalCoordinates(haxis, fixed_P, S, Gx, Gy, Gz, coord):
     m, n = haxis.shape
     mindist = (haxis[1,0]-coord[0])**2 + (haxis[1,1]-coord[1])**2 + (haxis[1,2]-coord[2])**2
     i_min = 0
-    for i in xrange(2,m):
+    for i in range(2,m):
         d2 = (haxis[i,0]-coord[0])**2 + (haxis[i,1]-coord[1])**2 + (haxis[i,2]-coord[2])**2
         if(d2 < mindist):
             i_min = i
@@ -220,7 +220,7 @@ def getFixedPoint(model, res_ids, haxis):
     # Check if CM too close to DNA axis
     mindist = (haxis[0,0]-CM[0])**2 + (haxis[0,1]-CM[1])**2 + (haxis[0,2]-CM[2])**2
     i_min = 0
-    for i in xrange(1,m):
+    for i in range(1,m):
         d2 = (haxis[i,0]-CM[0])**2 + (haxis[i,1]-CM[1])**2 + (haxis[i,2]-CM[2])**2
         if(d2 < mindist):
             mindist = d2
@@ -253,19 +253,19 @@ def generateHaxis(haxis):
     zcoef = np.array(haxis["z_coef"])
     
     m = int(haxis["axis_length"]*5) # 5 points per angstrom
-    p = np.array(range(xcoef.size))
+    p = np.array(list(range(xcoef.size)))
     
     # Generate axis coordinates
     coords = np.zeros((m, 3))
     t = np.linspace(-haxis["axis_length"]/2, haxis["axis_length"]/2, num=m)
-    for i in xrange(0, m):
+    for i in range(0, m):
         coords[i,0] = np.dot(xcoef, np.power(t[i], p))
         coords[i,1] = np.dot(ycoef, np.power(t[i], p))
         coords[i,2] = np.dot(zcoef, np.power(t[i], p))
     
     # Compute distance along axis
     S = np.zeros(m, dtype=float)
-    for i in xrange(1,m):
+    for i in range(1,m):
         S[i] = S[i-1] + np.linalg.norm(coords[i]-coords[i-1])
     
     # Compute gradients of axis
@@ -600,7 +600,7 @@ def comp(pdbid, N, assembly, PRO_DATA, DSSP, DNA_DATA, INT_DATA, REGEXES, NUCLEO
     #    nucleotideMap[nuc["id"]] = nuc
     
     ### Add nucleotide and residue FASA values from INT_DATA ###
-    for mi in xrange(N):
+    for mi in range(N):
         model = INT_DATA[mi]
         
         for res in model["basa"]["residues"]:
@@ -619,7 +619,7 @@ def comp(pdbid, N, assembly, PRO_DATA, DSSP, DNA_DATA, INT_DATA, REGEXES, NUCLEO
     
     DELETE_MODELS = []
     ### Add nucleotide-residue interactions ###
-    for mi in xrange(N):
+    for mi in range(N):
         model = INT_DATA[mi]
         interfaces = {} # keyed by entity_id
         
@@ -1013,7 +1013,7 @@ def comp(pdbid, N, assembly, PRO_DATA, DSSP, DNA_DATA, INT_DATA, REGEXES, NUCLEO
                 # Get binding sites
                 bindsite1 = []
                 bindsite2 = []
-                for i in xrange(HELIX["length"]):
+                for i in range(HELIX["length"]):
                     id1 = HELIX["ids1"][i]
                     id2 = HELIX["ids2"][i]
                     if(id1 in interfaces[int_id]["nucleotide_data"]):
@@ -1106,33 +1106,33 @@ def comp(pdbid, N, assembly, PRO_DATA, DSSP, DNA_DATA, INT_DATA, REGEXES, NUCLEO
         
         # Convert dicts to arrays
         for int_id in interfaces:
-            interfaces[int_id]["nucleotide-residue_interactions"] = interfaces[int_id]["nucleotide-residue_interactions"].values()
-            interfaces[int_id]["nucleotide-sse_interactions"] = interfaces[int_id]["nucleotide-sse_interactions"].values()
-            interfaces[int_id]["nucleotide_data"] = interfaces[int_id]["nucleotide_data"].values()
-            interfaces[int_id]["residue_data"] = interfaces[int_id]["residue_data"].values()
-            interfaces[int_id]["sse_data"] = interfaces[int_id]["sse_data"].values()
+            interfaces[int_id]["nucleotide-residue_interactions"] = list(interfaces[int_id]["nucleotide-residue_interactions"].values())
+            interfaces[int_id]["nucleotide-sse_interactions"] = list(interfaces[int_id]["nucleotide-sse_interactions"].values())
+            interfaces[int_id]["nucleotide_data"] = list(interfaces[int_id]["nucleotide_data"].values())
+            interfaces[int_id]["residue_data"] = list(interfaces[int_id]["residue_data"].values())
+            interfaces[int_id]["sse_data"] = list(interfaces[int_id]["sse_data"].values())
             interfaces[int_id]["protein_chains"] = list(interfaces[int_id]["protein_chains"])
-            interfaces[int_id]["interface_features"] = interfaces[int_id]["interface_features"].values()
+            interfaces[int_id]["interface_features"] = list(interfaces[int_id]["interface_features"].values())
             for ns in interfaces[int_id]["nucleotide-sse_interactions"]:
                 ns["nucleotide_interaction_moieties"] = list(ns["nucleotide_interaction_moieties"])
                 ns["residue_interaction_moieties"] = list(ns["residue_interaction_moieties"])
                 ns["moiety_interactions"] = list(ns["moiety_interactions"])
         
         # Add list of entity-protein interfaces
-        JSON["interfaces"]["models"].append(interfaces.values())
+        JSON["interfaces"]["models"].append(list(interfaces.values()))
         if(len(interfaces) == 0):
             DELETE_MODELS.append(mi)
     
     ### Delete non-surface residues ###
-    for rid in JSON["protein"]["residues"].keys():
+    for rid in list(JSON["protein"]["residues"].keys()):
         residue = JSON["protein"]["residues"][rid]
         if(not any(residue["surface"])):
             del JSON["protein"]["residues"][rid]
     
     ### Change from dicts to arrays ###
-    JSON["protein"]["chains"] = JSON["protein"]["chains"].values()
-    JSON["protein"]["residues"] = JSON["protein"]["residues"].values()
-    JSON["dna"]["nucleotides"] = JSON["dna"]["nucleotides"].values()
+    JSON["protein"]["chains"] = list(JSON["protein"]["chains"].values())
+    JSON["protein"]["residues"] = list(JSON["protein"]["residues"].values())
+    JSON["dna"]["nucleotides"] = list(JSON["dna"]["nucleotides"].values())
     
     ### Delete any models with no interface ###
     if(len(DELETE_MODELS) == N):

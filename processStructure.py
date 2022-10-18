@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from __future__ import division
+
 import numpy as np
 import subprocess
 import os
@@ -14,7 +14,7 @@ import Bio.PDB
 copy = Bio.PDB.Atom.copy
 def myCopy(self):
     shallow = copy.copy(self)
-    for child in self.child_dict.values():
+    for child in list(self.child_dict.values()):
         shallow.disordered_add(child.copy())
     return shallow
 Bio.PDB.Atom.DisorderedAtom.copy=myCopy
@@ -246,8 +246,8 @@ def runPDB2PQR(pdbid, assembly, META, N):
                 OUT.close()
                 rc = subprocess.call([
                         'pdb2pqr',
-                        '--ff=amber',
-                        '--chain',
+                        '--ff=AMBER',
+                        '--keep-chain',
                         '--include-header',
                         fName,
                         tName
@@ -596,7 +596,7 @@ def cleanAssembly(pdbid, assembly, filter_chains, META, N):
         if(REMOVED[r]["name"] in COMPONENTS):
             rem_count += 1.0
     if(rem_count/(N*res_count) > 0.2):
-        log("Too many removed residues, check if something is wrong. ({}).".format(len(REMOVED)), pdbid, removed=REMOVED.values())
+        log("Too many removed residues, check if something is wrong. ({}).".format(len(REMOVED)), pdbid, removed=list(REMOVED.values()))
     
     # Remove residues
     for resid in REMOVED:
@@ -622,7 +622,7 @@ def protonate(pdbid, N):
     FNULL = open(os.devnull, 'w')
     rc = subprocess.call(['reduce', '-NOFLIP', '-Quiet', '-DB', os.path.join(DATA_PATH,'reduce_wwPDB_het_dict.txt'), '{}-noH.pdb'.format(pdbid)],
             stdout=OUT,
-            stderr=FNULL
+            #stderr=FNULL
         )
     FNULL.close()
     OUT.close()
@@ -631,7 +631,7 @@ def protonate(pdbid, N):
     else:
         # Check that hydrogens were actually added
         FH = open("{}.pdb".format(pdbid), 'r').readlines()
-        reduceRe = re.compile('^USER  MOD reduce.3.24.130724 H: found=(\d+), std=\d+, add=(\d+)')
+        reduceRe = re.compile('^USER  MOD .+found=(\d+), std=\d+, add=(\d+)')
         for line in FH:
             rm = reduceRe.search(line)
             if(rm):
@@ -647,7 +647,7 @@ def sortChain(chain):
     # determine intrinsic order of the chain
     clist = chain.get_list()
     order = 0
-    for i in xrange(1, len(clist)):
+    for i in range(1, len(clist)):
         r0 = clist[i-1]
         r1 = clist[i]
         if(r1.get_id()[1] > r0.get_id()[1]):
@@ -665,7 +665,7 @@ def buildAssemblies(pdbid, asymmetric_unit, mmcif_dict, META):
     # Remove any extra models from asymmetric unit if ensemble mode is 
     # turned off
     if(not ENSEMBLE):
-        for i in xrange(1,asymmetric_unit.__len__()):
+        for i in range(1,asymmetric_unit.__len__()):
             asymmetric_unit.detach_child(i)
         N = 1
     else:
@@ -699,13 +699,13 @@ def buildAssemblies(pdbid, asymmetric_unit, mmcif_dict, META):
         # Create chain map to map chains from the asymmetric unit to those
         # of the biological assembly
         chain_map = {}
-        for i in xrange(len(mmcif_dict['_pdbx_poly_seq_scheme.asym_id'])):
+        for i in range(len(mmcif_dict['_pdbx_poly_seq_scheme.asym_id'])):
             asym_id = mmcif_dict['_pdbx_poly_seq_scheme.asym_id'][i]
             chain_id = mmcif_dict['_pdbx_poly_seq_scheme.pdb_strand_id'][i]
             if(not asym_id in chain_map):
                 chain_map[asym_id] = chain_id
         if('_pdbx_nonpoly_scheme.asym_id' in mmcif_dict):
-            for i in xrange(len(mmcif_dict['_pdbx_nonpoly_scheme.asym_id'])):
+            for i in range(len(mmcif_dict['_pdbx_nonpoly_scheme.asym_id'])):
                 asym_id = mmcif_dict['_pdbx_nonpoly_scheme.asym_id'][i]
                 chain_id = mmcif_dict['_pdbx_nonpoly_scheme.pdb_strand_id'][i]
                 if(not asym_id in chain_map):
@@ -716,7 +716,7 @@ def buildAssemblies(pdbid, asymmetric_unit, mmcif_dict, META):
         assembly_operations = {} # dictionary which stores assembly_operation objects
         if(type(operation_ids) is list):
             # Multiple biological assembly operations
-            for i in xrange(len(operation_ids)):
+            for i in range(len(operation_ids)):
                 assembly_operations[operation_ids[i]] = assembly_operation(
                     operation_ids[i],
                     mmcif_dict['_pdbx_struct_oper_list.type'][i],
@@ -769,7 +769,7 @@ def buildAssemblies(pdbid, asymmetric_unit, mmcif_dict, META):
             mmcif_dict['_pdbx_struct_assembly_gen.oper_expression'] = [mmcif_dict['_pdbx_struct_assembly_gen.oper_expression']]
         
         # Check for ranges in .oper_expression list
-        for i in xrange(len(mmcif_dict['_pdbx_struct_assembly_gen.oper_expression'])):
+        for i in range(len(mmcif_dict['_pdbx_struct_assembly_gen.oper_expression'])):
             op = mmcif_dict['_pdbx_struct_assembly_gen.oper_expression'][i]
             m = re.search("(\d+)-(\d+)", op)
             if(m is not None):
@@ -780,22 +780,22 @@ def buildAssemblies(pdbid, asymmetric_unit, mmcif_dict, META):
         
         # create intructions for each assembly (keyed by .assembly_id)
         assembly_instructions = {}
-        for i in xrange(len(assembly_ids)):
+        for i in range(len(assembly_ids)):
             if(assembly_ids[i] in assembly_instructions):
                 assembly_instructions[assembly_ids[i]]['operations'] += mmcif_dict['_pdbx_struct_assembly_gen.oper_expression'][i].split(',')
-                for j in xrange(len(mmcif_dict['_pdbx_struct_assembly_gen.oper_expression'][i].split(','))):
+                for j in range(len(mmcif_dict['_pdbx_struct_assembly_gen.oper_expression'][i].split(','))):
                     assembly_instructions[assembly_ids[i]]['op_chains'].append(mmcif_dict['_pdbx_struct_assembly_gen.asym_id_list'][i].split(','))
             else:
                 assembly_instructions[assembly_ids[i]] = {
                     'operations': mmcif_dict['_pdbx_struct_assembly_gen.oper_expression'][i].split(','),
                     'op_chains': []
                 }
-                for j in xrange(len(mmcif_dict['_pdbx_struct_assembly_gen.oper_expression'][i].split(','))):
+                for j in range(len(mmcif_dict['_pdbx_struct_assembly_gen.oper_expression'][i].split(','))):
                     assembly_instructions[assembly_ids[i]]['op_chains'].append(mmcif_dict['_pdbx_struct_assembly_gen.asym_id_list'][i].split(','))
         
         # convert .asym_id_list to chain ids
-        for instruction in assembly_instructions.itervalues():
-            for i in xrange(len(instruction['op_chains'])):
+        for instruction in assembly_instructions.values():
+            for i in range(len(instruction['op_chains'])):
                 chain_ids = []
                 for asym_id in instruction['op_chains'][i]:
                     if(not chain_map[asym_id] in chain_ids):
@@ -814,7 +814,7 @@ def buildAssemblies(pdbid, asymmetric_unit, mmcif_dict, META):
             
             # compute number of generated chains
             chain_count = 0
-            for i in xrange(len(assembly_instructions[key]['operations'])):
+            for i in range(len(assembly_instructions[key]['operations'])):
                 chain_count += len(assembly_instructions[key]['op_chains'][i])
             if(chain_count > len(id_list)):
                 log("This structure is too large, aborting. ({} chains)".format(chain_count), pdbid, chain_count=chain_count)
@@ -830,7 +830,7 @@ def buildAssemblies(pdbid, asymmetric_unit, mmcif_dict, META):
         
             # apply operations to each chain
             filter_chains = []
-            for i in xrange(len(assembly_instructions[key]['operations'])):
+            for i in range(len(assembly_instructions[key]['operations'])):
                 op_id = assembly_instructions[key]['operations'][i]
                 for chain_id in assembly_instructions[key]['op_chains'][i]:
                     for j in range(N):
@@ -944,8 +944,8 @@ def main(pdbid):
         A PDB id or prefex of the file to be processed. Should be named 
         either 'pdbid'.pdb or 'pdbid'.cif. 
     """
-    print("Structure ID: {}".format(pdbid))
-    print("BioPython Version: {}".format(BPV))
+    print(("Structure ID: {}".format(pdbid)))
+    print(("BioPython Version: {}".format(BPV)))
     cif_file = "{}.cif".format(pdbid)
     pdb_file = "{}.pdb".format(pdbid)
     
@@ -1060,7 +1060,7 @@ def main(pdbid):
     
     NUCLEOTIDES = []
     DELETE_MODELS = []
-    for i in xrange(len(DNA_DATA)):
+    for i in range(len(DNA_DATA)):
         # Check for empty entities
         if(len(DNA_DATA[i]["entities"]) == 0):
             DELETE_MODELS.append(i)
