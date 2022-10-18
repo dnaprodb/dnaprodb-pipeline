@@ -50,11 +50,11 @@ class Regexes(object):
             name = self.nucleotides[self.i][key]["name"]
             
             # Compile regexes if not already so
-            if(not isinstance(self.components[name]["base_atoms_re"], re._pattern_type)):
+            if(not isinstance(self.components[name]["base_atoms_re"], re.Pattern)):
                 self.components[name]["base_atoms_re"] = re.compile(self.components[name]["base_atoms_re"])
-            if(not isinstance(self.components[name]["sugar_atoms_re"], re._pattern_type)):
+            if(not isinstance(self.components[name]["sugar_atoms_re"], re.Pattern)):
                 self.components[name]["sugar_atoms_re"] = re.compile(self.components[name]["sugar_atoms_re"])
-            if(not isinstance(self.components[name]["phosphate_atoms_re"], re._pattern_type)):
+            if(not isinstance(self.components[name]["phosphate_atoms_re"], re.Pattern)):
                 self.components[name]["phosphate_atoms_re"] = re.compile(self.components[name]["phosphate_atoms_re"])
                 
             if(ss == "helical"):
@@ -211,13 +211,13 @@ def compileRegexes(obj):
     objType = type(obj)
     if(objType is dict):
         for key in obj:
-            if(type(obj[key]) is unicode):
+            if(type(obj[key]) is str):
                 obj[key] = re.compile(obj[key])
             else:
                 compileRegexes(obj[key])
     elif(objType is list):
         for i in range(len(obj)):
-            if(type(obj[i]) is unicode):
+            if(type(obj[i]) is str):
                 obj[i] = re.compile(obj[i])
             else:
                 compileRegexes(obj[i])
@@ -277,9 +277,11 @@ def getID(*args, **kwargs):
         return '.'.join(args)
 
 def roundFloats(dictionary, precision=3):
-    for key, value in dictionary.iteritems():
+    for key, value in dictionary.items():
         if isinstance(value, float):
             dictionary[key] = round(value, precision)
+        elif isinstance(value, np.float32):
+            dictionary[key] = round(float(value), precision)
         elif isinstance(value, dict):
             roundFloats(value,precision)
         elif isinstance(value, list):
@@ -290,7 +292,7 @@ def roundFloats(dictionary, precision=3):
 def nucleotideMoiety(atom, nuc_id, REGEXES):
     classes = REGEXES[nuc_id]
     moieties = REGEXES.getMoietyList(nuc_id)
-    for i in xrange(len(classes)):
+    for i in range(len(classes)):
         if(classes[i].search(atom)):
             return moieties[i]
             break
@@ -300,7 +302,7 @@ def nucleotideMoiety(atom, nuc_id, REGEXES):
 def residueMoiety(atom, resn, REGEXES):
     classes = REGEXES[resn]
     moieties = REGEXES.getMoietyList(resn)
-    for i in xrange(len(classes)):
+    for i in range(len(classes)):
         if(classes[i].search(atom)):
             return moieties[i]
             break

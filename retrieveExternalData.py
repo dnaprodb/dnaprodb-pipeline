@@ -5,8 +5,8 @@ import json
 import subprocess
 import glob
 import argparse
-import urllib
-import urllib2
+import urllib.request, urllib.parse, urllib.error
+import urllib.request, urllib.error, urllib.parse
 import re
 import xmltodict
 from dnaprodb_utils import C
@@ -57,11 +57,11 @@ PDBIDS = {pdbid.strip().lower():{} for pdbid in open(os.path.join(CIF_DIR, "pdb_
 # Download Data files
 if(not args.no_databases):
     print("Downloading Data")
-    for i in xrange(len(DATA)):
+    for i in range(len(DATA)):
         url, fileName, dirName = DATA[i]
-        print("Retrieving {}".format(url))
+        print(("Retrieving {}".format(url)))
         try:
-            REP = urllib2.urlopen(url)
+            REP = urllib.request.urlopen(url)
             data = REP.read()
             REP.close()
             
@@ -76,10 +76,10 @@ if(not args.no_databases):
                 subprocess.call(["gunzip", "-f", path])
                 fileName = prefix
                 DATA[i] = (url, fileName, dirName)
-        except (urllib2.HTTPError, urllib2.URLError):
-            print("Could not download {}".format(url))
+        except (urllib.error.HTTPError, urllib.error.URLError):
+            print(("Could not download {}".format(url)))
 else:
-    for i in xrange(len(DATA)):
+    for i in range(len(DATA)):
         url, fileName, dirName = DATA[i]
         prefix, suffix = os.path.splitext(fileName)
         if(suffix == ".gz"):
@@ -118,12 +118,12 @@ if(not args.no_uniprot):
         'from':'PDB_ID',
         'to':'ACC',
         'format':'txt',
-        'query': ' '.join(PDBIDS.keys())
+        'query': ' '.join(list(PDBIDS.keys()))
     }
     
-    data = urllib.urlencode(params)
-    request = urllib2.Request(url, data)
-    response = urllib2.urlopen(request)
+    data = urllib.parse.urlencode(params)
+    request = urllib.request.Request(url, data)
+    response = urllib.request.urlopen(request)
     path = os.path.join(UNIPROT_DIR, "uniprot_data.dat")
     FH = open(path, 'w')
     FH.write(response.read())
@@ -243,7 +243,7 @@ for line in FH:
             # file not found - try to download it individually
             try:
                 url = "http://www.uniprot.org/uniprot/{}.txt".format(accession)
-                handle = urllib2.urlopen(url)
+                handle = urllib.request.urlopen(url)
                 data = handle.read()
                 handle.close()
                 
@@ -251,7 +251,7 @@ for line in FH:
                 UNPOUT.write(data)
                 UNPOUT.close()
             except:
-                print("Could not retrieve uniprot record {}".format(accession))
+                print(("Could not retrieve uniprot record {}".format(accession)))
                 continue
         handle = open(path)
         UNP_RECORDS[accession] = SwissProt.read(handle)
@@ -260,7 +260,7 @@ for line in FH:
         description = UNP_RECORDS[accession].description
         description = re.sub(r'{.*?}', '', description)
         description = re.split(':|;',description)
-        for i in xrange(len(description)):
+        for i in range(len(description)):
             description[i] = description[i].strip()
             if(re.search('^Full|^Short',description[i])):
                 names.append(description[i].split('=')[1])

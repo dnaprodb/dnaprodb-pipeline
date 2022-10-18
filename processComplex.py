@@ -9,7 +9,7 @@ import getBASA
 from dnaprodb_utils import CHAIN_RE, RESN_RE, RESI_RE, ATOM_RE
 from dnaprodb_utils import residueMoiety
 from dnaprodb_utils import nucleotideMoiety
-from dnaprodb_utils import log, getHash, getID, getCM, C
+from dnaprodb_utils import log, getHash, getID, getCM, C, roundFloats
 
 VDW_CUTOFF_DISTANCE = C["VDW_CUTOFF_DISTANCE"]
 INTERACTION_DISTANCE_CUTOFF = C["INTERACTION_DISTANCE_CUTOFF"]
@@ -120,7 +120,7 @@ def getGeometry(pdbid):
             hpmatch = hpre.match(SNPFH[i])
             if(hpmatch):
                 j = int(hpmatch.group(1));
-                for k in xrange(i+2,i+j+2):
+                for k in range(i+2,i+j+2):
                     fields = SNPFH[k].split()
                     nucm = dre.match(fields[3])
                     resm = dre.match(fields[4])
@@ -143,7 +143,7 @@ def getGeometry(pdbid):
             hsmatch = hsre.match(SNPFH[i])
             if(hsmatch):
                 j = int(hsmatch.group(1));
-                for k in xrange(i+2,i+j+2):
+                for k in range(i+2,i+j+2):
                     fields = SNPFH[k].split()
                     nucm = dre.match(fields[3])
                     resm = dre.match(fields[4])
@@ -180,8 +180,8 @@ def getEffectiveInteractions(center, neighbors):
     cv = center.get_vector()
     vectors = [n.get_vector() for n in neighbors]
     effective_neighbors = []
-    for i in xrange(len(neighbors)):
-        for j in xrange(len(neighbors)):
+    for i in range(len(neighbors)):
+        for j in range(len(neighbors)):
             angles[i][j] = calc_angle(
                 vectors[i],
                 cv,
@@ -260,13 +260,13 @@ def getVDW(model, nuc_list, res_list, HBHASH, REGEXES):
 def calculateHBONDS(prefix, DATA_PATH, REGEXES, method="hbplus"):
     # Attempt to run HBPLUS, or fallback to x3dna-snap hbond output.
     FNULL = open(os.devnull, 'w')
-    rc = subprocess.call(['hbadd', '{}.pdb'.format(prefix), os.path.join(DATA_PATH,'components.cif')], stdout=FNULL, stderr=FNULL)
-    rc += subprocess.call(['hbplus', '-h', '3.0', '-d', '3.5', '{}.pdb'.format(prefix), '{}.pdb'.format(prefix)], stdout=FNULL, stderr=FNULL)
+    #rc = subprocess.call(['hbadd', '{}.pdb'.format(prefix), os.path.join(DATA_PATH,'components.cif')], stdout=FNULL, stderr=FNULL)
+    rc = subprocess.call(['hbplus', '-h', '3.0', '-d', '3.5', '{}.pdb'.format(prefix), '{}.pdb'.format(prefix)], stdout=FNULL, stderr=FNULL)
     FNULL.close()
     HBONDS = {}
     if(rc == 0 and os.access('{}.hb2'.format(prefix), os.R_OK) and method=="hbplus"):
         HB = open('{}.hb2'.format(prefix),'r').readlines()
-        for i in xrange(8,len(HB)):
+        for i in range(8,len(HB)):
             d_chain = HB[i][0]
             d_resi = str(int(HB[i][1:5].strip()))
             d_resn = HB[i][6:9].strip()
@@ -392,7 +392,7 @@ def calculateHBONDS(prefix, DATA_PATH, REGEXES, method="hbplus"):
             os.remove('{}.hbond'.format(prefix))
         else:
             log('HBPLUS and x3dna-snap failed to run.', prefix)
-    return HBONDS.values()
+    return list(HBONDS.values())
 
 def splitEnsemble(prefix, N, REGEXES):
     """ Docstring """
@@ -495,7 +495,7 @@ def process(prefix, N, COMPONENTS, assembly, DSSP, DATA_PATH, REGEXES, NUCLEOTID
         int_pairs, nuc_list, res_list = getInteractingPairs(assembly[i], REGEXES)
         if(len(int_pairs) == 0):
             log("No nucleotide-residue pairs meet the interaction cut-off threshold.", prefix)
-        interactions["nucleotide-residue_interactions"] = int_pairs.values()
+        interactions["nucleotide-residue_interactions"] = list(int_pairs.values())
         interface_ids = {
             "res_ids": res_list,
             "nuc_ids": nuc_list,
@@ -525,6 +525,8 @@ def process(prefix, N, COMPONENTS, assembly, DSSP, DATA_PATH, REGEXES, NUCLEOTID
         OUT.append(interactions)
     
     # Write data to file
+    for o in OUT:
+        roundFloats(o)
     IOUT = open("{}-interactions.json".format(prefix),"w")
     IOUT.write(json.dumps(OUT,indent=None,separators=(',', ':'),sort_keys=True))
     IOUT.close()

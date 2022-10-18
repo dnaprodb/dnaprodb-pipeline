@@ -79,11 +79,11 @@ def getSESA(model, residue_ids, classifier, pdbid, regexes=None, total=True):
     
     if(total):
         totalSESA = 0.0
-        for i in xrange(len(SE)):
+        for i in range(len(SE)):
             totalSESA += float(SE[i].strip().split()[1])
         return totalSESA
     else:
-        for i in xrange(len(SE)):
+        for i in range(len(SE)):
             rid, resn, aname = resData[i]
             sesa = float(SE[i].strip().split()[1])
             residueSESA[rid]["total"] += sesa
@@ -206,7 +206,7 @@ def addExternalData(models, pdbid, mmcif_dict, chain_map):
             if(line[0] == pdbid):
                 UNP_ACCS[line[1]] = line[2]
     
-    for i in xrange(len(mmcif_dict['_struct_ref_seq.pdbx_strand_id'])):
+    for i in range(len(mmcif_dict['_struct_ref_seq.pdbx_strand_id'])):
         accession = None
         UNP_file = None
         if(mmcif_dict['_struct_ref_seq.pdbx_strand_id'][i] in UNP_ACCS):
@@ -230,7 +230,7 @@ def addExternalData(models, pdbid, mmcif_dict, chain_map):
             description = UNP_RECORD[accession].description
             description = re.sub(r'{.*?}', '', description)
             description = re.split(':|;',description)
-            for i in xrange(len(description)):
+            for i in range(len(description)):
                 description[i] = description[i].strip()
                 if(re.search('^Full|^Short',description[i])):
                     names.append(description[i].split('=')[1])
@@ -339,7 +339,7 @@ def addExternalData(models, pdbid, mmcif_dict, chain_map):
                 chain['cath_class'] = ['N/A']
 
 def _addLoops(index, sse, peptide, Lcount, SS_ELEMENTS):
-    for j in xrange(sse["start"], index):
+    for j in range(sse["start"], index):
         # Add loops
         Lcount += 1
         loopID = peptide['residue_ids'][j]
@@ -416,7 +416,7 @@ def getSSE(peptides, structure, chains, residues):
             "start": 0,
             "type": ss[0]
         }
-        for i in xrange(1, len(ss)):
+        for i in range(1, len(ss)):
             cur = ss[i]
             if(cur != pre):
                 if(sse["type"] == "L"):
@@ -447,14 +447,14 @@ def getSSE(peptides, structure, chains, residues):
     # Ensure consistency between SSE and chain/residue secondary structure
     for chain in chains:
         chain["secondary_structure"] = list(chain["secondary_structure"])
-        for i in xrange(len(chain["residue_ids"])):
+        for i in range(len(chain["residue_ids"])):
             rid = chain["residue_ids"][i]
             if(rid in SS_ELEMENTS):
                 chain["secondary_structure"][i] = "L"
                 residues[rid]["secondary_structure"] = "L"
         chain["secondary_structure"] = "".join(chain["secondary_structure"])
     
-    return SS_ELEMENTS.values(), HELIX, SHEET
+    return list(SS_ELEMENTS.values()), HELIX, SHEET
 
 def printSSRemark(resIDs, num, label, structure, sst):
     startID = resIDs[0]
@@ -524,7 +524,7 @@ def getSAP(model, distance, classifier, REGEXES):
     # store all atoms with a SASA > 0, skipping non-standard atoms
     atomSASA = {}
     N = F_pro.nAtoms()
-    for i in xrange(N):
+    for i in range(N):
         sasa = SASA.atomArea(i)
         if(sasa > 0 and F_pro.residueName(i).strip() in RESIDUE_HPHOB):
             resn = F_pro.residueName(i).strip()
@@ -591,7 +591,7 @@ def getSAP(model, distance, classifier, REGEXES):
     for key in resSAP:
         resSAP[key]['SAP'] /= resSAP[key]['acount']
     
-    return resSAP.values()
+    return list(resSAP.values())
 
 def process(prefix, N, COMPONENTS, REGEXES, IDs,
     quiet=True,
@@ -673,7 +673,7 @@ def process(prefix, N, COMPONENTS, REGEXES, IDs,
     elif(sse_type != 'per_model'):
         dssp = getDSSP(sse_type, structure, fileName)
     
-    for i in xrange(N):
+    for i in range(N):
         # Get Data for each chain
         PRO_CHAINS = []
         PRO_RES = []
@@ -771,13 +771,13 @@ def process(prefix, N, COMPONENTS, REGEXES, IDs,
         
         # Populate neighbors array
         NP = len(PEPTIDES)
-        for j in xrange(NP):
+        for j in range(NP):
             c1 = PEPTIDES[j]["chain"]
             S1 = getBASA.buildStructure(modelF, PEPTIDES[j]["residue_ids"], in_regex=[[c1]], field_keys=["chain_id"])
             B1 = freesasa.calc(S1, parameters=opts).totalArea()
             #B1 = getSESA(model, PEPTIDES[j]["residue_ids"], classifier, prefix)
             neighbors.add_edge(PEPTIDES[j]["id"], PEPTIDES[j]["id"])
-            for k in xrange(j+1, NP):
+            for k in range(j+1, NP):
                 c2 = PEPTIDES[k]["chain"]
                 S2 = getBASA.buildStructure(modelF, PEPTIDES[k]["residue_ids"], in_regex=[[c2]], field_keys=["chain_id"])
                 B2 = freesasa.calc(S2, parameters=opts).totalArea()
