@@ -1,6 +1,7 @@
 # DNAproDB Processing Pipeline
 The DNAproDB processing pipeline is built as a collection of python scripts that take as input a PDB entry (in mmCIF or PDB file format) and produce a single JSON file as output containing all information about the DNA and protein structural characteristics and the interactions between protein residues and nucleotides in the complex. Additional annotations from several other databases are used as well. A schematic of the pipeline is shown below.
 
+![pipeline](docs/dnaprodb_pipeline.png)
 
 It is preferred to use the mmCIF file format, as the header info is parsed and additonal annotations can be extracted from it, which would be missing for the PDB file format.
 
