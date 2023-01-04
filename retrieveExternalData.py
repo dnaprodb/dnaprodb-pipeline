@@ -14,6 +14,7 @@ from Bio.PDB.MMCIF2Dict import MMCIF2Dict
 from Bio import SwissProt
 
 arg_parser = argparse.ArgumentParser()
+arg_parser.add_argument("pdb_list_file")
 arg_parser.add_argument("-D", "--no_databases", action='store_true')
 arg_parser.add_argument("-P", "--no_pdb", action='store_true')
 arg_parser.add_argument("-U", "--no_uniprot", action='store_true')
@@ -21,13 +22,13 @@ args = arg_parser.parse_args()
 
 # Directories to store data files
 ROOT_DIR = C["ROOT_DIR"]
-UNIPROT_DIR = os.path.join(ROOT_DIR, "MAPPINGS/UNIPROT")
-PDB_DIR = os.path.join(ROOT_DIR, "MAPPINGS/PDB")
-CATH_DIR = os.path.join(ROOT_DIR, "MAPPINGS/CATH")
-SIFTS_DIR = os.path.join(ROOT_DIR, "MAPPINGS/SIFTS")
-GO_DIR = os.path.join(ROOT_DIR, "MAPPINGS/GO")
-CIF_DIR = os.path.join(ROOT_DIR, "CIFFILES")
-MAP_DIR = os.path.join(ROOT_DIR, "MAPPINGS")
+UNIPROT_DIR = os.path.join(ROOT_DIR, "external/mappings/UNIPROT")
+PDB_DIR = os.path.join(ROOT_DIR, "external/mappings/PDB")
+CATH_DIR = os.path.join(ROOT_DIR, "external/mappings/CATH")
+SIFTS_DIR = os.path.join(ROOT_DIR, "external/mappings/SIFTS")
+#GO_DIR = os.path.join(ROOT_DIR, "external/mappings/GO")
+#CIF_DIR = os.path.join(ROOT_DIR, "external/CIFFILES")
+MAP_DIR = os.path.join(ROOT_DIR, "external/mappings")
 
 # Database URLS
 DATA = [
@@ -45,17 +46,17 @@ DATA = [
     ("ftp://ftp.ebi.ac.uk/pub/databases/msd/sifts/flatfiles/csv/pdb_chain_uniprot.csv.gz", "uniprot_mappings.dat.gz", SIFTS_DIR), #8
     ("ftp://ftp.ebi.ac.uk/pub/databases/msd/sifts/flatfiles/csv/pdb_chain_go.csv.gz", "go_mappings.dat.gz", SIFTS_DIR), #9
     # GO ontology
-    ("http://purl.obolibrary.org/obo/go.obo", "go.obo", GO_DIR) # 10
+    #("http://purl.obolibrary.org/obo/go.obo", "go.obo", GO_DIR) # 10
 ]
 
 CLUSTERS = ["30", "40", "50", "70", "90", "95", "100"]
 
 # Get list of valid PDBids
 print("Getting list of PDB ids")
-PDBIDS = {pdbid.strip().lower():{} for pdbid in open(os.path.join(CIF_DIR, "pdb_ids.dat"))}
-
+PDBIDS = {pdbid.strip().lower():{} for pdbid in open(args.pdb_list_file)}
+print(PDBIDS)
 # Download Data files
-if(not args.no_databases):
+if not args.no_databases:
     print("Downloading Data")
     for i in range(len(DATA)):
         url, fileName, dirName = DATA[i]
@@ -66,7 +67,7 @@ if(not args.no_databases):
             REP.close()
             
             path = os.path.join(dirName, fileName)
-            OUT = open(path, "w")
+            OUT = open(path, "wb")
             OUT.write(data)
             OUT.close()
             
@@ -111,7 +112,7 @@ else:
                     #print("{}: PDBError".format(pdbid))
 
 # Download UniProt Data
-if(not args.no_uniprot):
+if not args.no_uniprot:
     print("Downloading UniProt files")
     url = 'https://www.uniprot.org/uploadlists/'
     params = {
@@ -132,6 +133,7 @@ if(not args.no_uniprot):
     # split UniProt files
     print("Splitting UniProt data files")
     subprocess.call(["splitUNIPROT.pl", path, UNIPROT_DIR])
+exit(0)
 
 # Generate PDB sequence clusters
 print("Generating Sequence Clusters")
