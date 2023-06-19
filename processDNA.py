@@ -11,8 +11,8 @@ from Bio.PDB.PDBParser import PDBParser
 from Bio.PDB import NeighborSearch
 from Bio.PDB.PDBIO import Select
 from Bio.PDB import PDBIO
-#from cogent.struct.knots import inc_length
-#from cogent.struct.rna2d import Pairs
+from forgi._k2n_standalone.knots  import inc_length
+from forgi._k2n_standalone.rna2d import Pairs
 from dnaprodb_utils import log, getHash, getID, C
 from dnaprodb_utils import ATOM_RE
 
@@ -23,7 +23,7 @@ import sys
 #import matplotlib.pyplot as plt
 #from mpl_toolkits.mplot3d import Axes3D
 
-#import RNA # viennaRNA package 
+import RNA # viennaRNA package 
 from functools import reduce
 
 np.warnings.filterwarnings('ignore')
@@ -2070,14 +2070,14 @@ def process(prefix, N, REGEXES, COMPONENTS, META_DATA, quiet=True):
             # Get DBN information
             PAIR_MAP = getPairMap(edata, pair_dict, eout["nucleotides"])
             pair_tuples = makePairTuples(ordered_ids, PAIR_MAP)
-            # PairObject = Pairs(pair_tuples)
-            # if(PairObject.hasPseudoknots()):
-                # print("Attemping to remove any false Pseudoknots")
-                # # Try to remove any false pseudoknots we may have created
-                # ordered_ids, pair_tuples = removeFalsePseudoknots(ordered_ids, PAIR_MAP, eout["strands"])
-                # eout["visualization"]["contains_pseudoknots"] = Pairs(pair_tuples).hasPseudoknots()
-            # eout["visualization"]["dbn"] = inc_length(pair_tuples).toVienna(len(ordered_ids))
-            # eout["nucleotides"] = ordered_ids
+            PairObject = Pairs(pair_tuples)
+            if(PairObject.hasPseudoknots()):
+                print("Attemping to remove any false Pseudoknots")
+                # Try to remove any false pseudoknots we may have created
+                ordered_ids, pair_tuples = removeFalsePseudoknots(ordered_ids, PAIR_MAP, eout["strands"])
+                eout["visualization"]["contains_pseudoknots"] = Pairs(pair_tuples).hasPseudoknots()
+            eout["visualization"]["dbn"] = inc_length(pair_tuples).toVienna(len(ordered_ids))
+            eout["nucleotides"] = ordered_ids
             
             # Sort Strands
             si = []
@@ -2088,28 +2088,28 @@ def process(prefix, N, REGEXES, COMPONENTS, META_DATA, quiet=True):
             eout["id"] = [c for _, c in sorted(zip(si, eout["id"]))]
             eout["id"] = getHash(*eout["id"])
             
-            # # Add radial layout coordinates
-            # coords = RNA.get_xy_coordinates(eout["visualization"]["dbn"])
-            # xs = np.array([coords.get(i).X for i in range(len(eout["visualization"]["dbn"]))])
-            # ys = np.array([coords.get(i).Y for i in range(len(eout["visualization"]["dbn"]))])
-            # xs -= np.mean(xs)
-            # ys -= np.mean(ys)
-            # scale = max(abs(np.max(xs)), abs(np.max(ys)), abs(np.min(xs)), abs(np.min(ys)))
-            # xs /= scale
-            # ys /= scale
-            # i = 0
-            # link_dist = []
-            # for j in range(len(eout["nucleotides"])):
-                # nid = eout["nucleotides"][j] #strand["ids"][j]
-                # nuc_dict[nid]["graph_coordinates"]["radial"]["x"] = xs[i]
-                # nuc_dict[nid]["graph_coordinates"]["radial"]["y"] = ys[i]
-                # if(j+1 < len(eout["nucleotides"]) and strand_dict[nid]["strand_id"] == strand_dict[eout["nucleotides"][j+1]]["strand_id"]):
-                    # link_dist.append(np.sqrt((xs[i+1]-xs[i])**2 + (ys[i+1]-ys[i])**2))
-                # i += 1
-            # if(len(link_dist) > 0):
-                # eout["visualization"]["radial"]["link_distance"] = np.mean(link_dist)
-            # else:
-                # eout["visualization"]["radial"]["link_distance"] = None
+            # Add radial layout coordinates
+            coords = RNA.get_xy_coordinates(eout["visualization"]["dbn"])
+            xs = np.array([coords.get(i).X for i in range(len(eout["visualization"]["dbn"]))])
+            ys = np.array([coords.get(i).Y for i in range(len(eout["visualization"]["dbn"]))])
+            xs -= np.mean(xs)
+            ys -= np.mean(ys)
+            scale = max(abs(np.max(xs)), abs(np.max(ys)), abs(np.min(xs)), abs(np.min(ys)))
+            xs /= scale
+            ys /= scale
+            i = 0
+            link_dist = []
+            for j in range(len(eout["nucleotides"])):
+                nid = eout["nucleotides"][j] #strand["ids"][j]
+                nuc_dict[nid]["graph_coordinates"]["radial"]["x"] = xs[i]
+                nuc_dict[nid]["graph_coordinates"]["radial"]["y"] = ys[i]
+                if(j+1 < len(eout["nucleotides"]) and strand_dict[nid]["strand_id"] == strand_dict[eout["nucleotides"][j+1]]["strand_id"]):
+                    link_dist.append(np.sqrt((xs[i+1]-xs[i])**2 + (ys[i+1]-ys[i])**2))
+                i += 1
+            if(len(link_dist) > 0):
+                eout["visualization"]["radial"]["link_distance"] = np.mean(link_dist)
+            else:
+                eout["visualization"]["radial"]["link_distance"] = None
             
             # Add circular layout coordinates
             dl = 1.0
