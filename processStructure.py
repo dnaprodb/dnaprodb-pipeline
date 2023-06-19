@@ -9,6 +9,8 @@ import argparse
 import operator
 import signal
 import networkx as nx
+from tqdm import tqdm
+
 # Biopython Disordered Atom Fix
 import Bio.PDB 
 copy = Bio.PDB.Atom.copy
@@ -984,7 +986,7 @@ def main(file_name):
         # Create the biological assembly(s)
         assembly, filter_chains, N = buildAssemblies(pdbid, asymmetric_unit, mmcif_dict, META_DATA)
         PDB = False
-    elif(os.access(pdb_file, os.R_OK)):
+    elif ext == "pdb":
         # Process PDB file if exists
         assembly, filter_chains, N = processPDBFile(pdbid, file_name, META_DATA)
         PDB = True
@@ -1134,8 +1136,8 @@ def main(file_name):
 ########################################################################
 # Get arguments
 parser = argparse.ArgumentParser()
-parser.add_argument("file_name",
-                help="PDB or mmCIF file of a protein-DNA complex structure.")
+parser.add_argument("structure_files",
+                help="List of PDB or mmCIF files of a protein-DNA complex structure.")
 parser.add_argument("-p", "--pdb2pqr", dest="pdb2pqr", action='store_true',
                 help="Process the structure with PDB2PQR.")
 
@@ -1163,7 +1165,7 @@ group3.add_argument("-M", "--no_meta", dest="meta", action='store_false',
 parser.set_defaults(clean=True, pdb2pqr=False, ensemble=True, meta=False, debug_dna=False)
 args = parser.parse_args()
 
-FILE_NAME = args.file_name
+#FILE_NAME = args.file_name
 CLEAN_STRUCTURE = args.clean
 PRE_PDB2PQR = args.pdb2pqr
 ENSEMBLE = args.ensemble
@@ -1180,7 +1182,10 @@ with open(os.path.join(DATA_PATH,'regexes.json')) as FILE:
 REGEXES = Regexes(regexes=r, components=COMPONENTS)
 
 if __name__ == '__main__':
-    signal.signal(signal.SIGALRM, timedOut)
-    signal.alarm(__TIMEOUT_LENGTH)
-    main(FILE_NAME)
-    signal.alarm(0)
+    for structure in tqdm(open(args.structure_files)):
+        FILE_NAME = structure.strip()
+        signal.signal(signal.SIGALRM, timedOut)
+        signal.alarm(__TIMEOUT_LENGTH)
+        main(FILE_NAME)
+        signal.alarm(0)
+        signal.alarm(0)
