@@ -210,6 +210,7 @@ def getVDW(model, nuc_list, res_list, HBHASH, REGEXES):
         for a in model[chain][rid].get_list():
             if(a.element != 'H'):
                 atom_list.append(a)
+    
     ns = NeighborSearch(atom_list)
     
     for a in atom_list[0:NAC]:
@@ -479,7 +480,6 @@ def splitEnsemble(prefix, N, REGEXES):
 def process(prefix, N, COMPONENTS, assembly, DSSP, DATA_PATH, REGEXES, NUCLEOTIDES, IDS):
     # Generate ID array
     OUT = []
-    
     # Loop over every model in ensemble
     for c,d,p,h,i in splitEnsemble(prefix, N, REGEXES):        
         REGEXES.setModel(i)

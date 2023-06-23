@@ -87,11 +87,15 @@ def getSESA(model, residue_ids, classifier, pdbid, regexes=None, total=True):
             rid, resn, aname = resData[i]
             sesa = float(SE[i].strip().split()[1])
             residueSESA[rid]["total"] += sesa
-            if(regexes[resn][0].search(aname)):
-                residueSESA[rid]["mc"] += sesa
-            else:
-                residueSESA[rid]["sc"] += sesa
-        
+            try:
+                if(regexes[resn][0].search(aname)):
+                    residueSESA[rid]["mc"] += sesa
+                else:
+                    residueSESA[rid]["sc"] += sesa
+            except:
+                print(resn)
+                print(aname)
+                print(regexes)
         return residueSESA
 
 def computeCV(model, res_list, residues, radius):
@@ -789,7 +793,8 @@ def process(prefix, N, COMPONENTS, REGEXES, IDs,
                     neighbors.add_edge(PEPTIDES[j]["id"], PEPTIDES[k]["id"])
         entities = []
         ignored = []
-        for entity in list(nx.connected_component_subgraphs(neighbors)):
+        #for entity in list(nx.connected_component_subgraphs(neighbors)):
+        for entity in list(neighbors.subgraph(c) for c in nx.connected_components(neighbors)):
             peptides = list(entity.nodes())
             res_ids = []
             for pepid in peptides:

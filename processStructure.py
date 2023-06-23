@@ -9,7 +9,7 @@ import argparse
 import operator
 import signal
 import networkx as nx
-from tqdm import tqdm
+import traceback
 
 # Biopython Disordered Atom Fix
 import Bio.PDB 
@@ -556,14 +556,16 @@ def cleanAssembly(pdbid, assembly, filter_chains, META, N):
         
         # Remove overlapping chains if any
         if(C.order() > 0):
-             for S in nx.connected_component_subgraphs(C):
+             #for S in nx.connected_component_subgraphs(C):
+             for S in list(C.subgraph(c).copy() for c in nx.connected_components(C)):
                 _disconnectGraph(S, assembly[i], 0.5, REMOVED, level='C', lengths=chain_count)
         # Remove already removed nodes from G
         for r in REMOVED:
             if(G.has_node(r)):
                 G.remove_node(r)
         if(G.order() > 0):
-            for S in nx.connected_component_subgraphs(G):
+            #for S in nx.connected_component_subgraphs(G):
+            for S in list(G.subgraph(c).copy() for c in nx.connected_components(G)):
                 _disconnectGraph(S, assembly[i], 2, REMOVED)
     
     # Verify that each MODEL has same residue/nucleotide set
@@ -663,7 +665,7 @@ def sortChain(chain):
     else:
         chain.child_list.sort(reverse=True)
 
-def buildAssemblies(pdbid, asymmetric_unit, mmcif_dict, META):    
+def buildAssemblies(pdbid, asymmetric_unit, mmcif_dict, META):
     # Remove any extra models from asymmetric unit if ensemble mode is 
     # turned off
     if(not ENSEMBLE):
@@ -800,7 +802,9 @@ def buildAssemblies(pdbid, asymmetric_unit, mmcif_dict, META):
             for i in range(len(instruction['op_chains'])):
                 chain_ids = []
                 for asym_id in instruction['op_chains'][i]:
-                    if(not chain_map[asym_id] in chain_ids):
+                    if asym_id not in chain_map:
+                        continue
+                    if not chain_map[asym_id] in chain_ids:
                         chain_ids.append(chain_map[asym_id])
                 instruction['op_chains'][i] = chain_ids
         
@@ -947,8 +951,8 @@ def main(file_name):
         either 'pdbid'.pdb or 'pdbid'.cif. 
     """
     pdbid, ext = file_name.split('.')
-    print(("Structure ID: {}".format(pdbid)))
-    print(("BioPython Version: {}".format(BPV)))
+    #print(("Structure ID: {}".format(pdbid)))
+    #print(("BioPython Version: {}".format(BPV)))
     #cif_file = "{}.cif".format(pdbid)
     #pdb_file = "{}.pdb".format(pdbid)
     
@@ -1015,10 +1019,13 @@ def main(file_name):
                 procount += 1
     if((dnacount+procount) > __RESCOUNT_LIMIT):
         log("This structure is too large, aborting. ({} components)".format(procount+dnacount), pdbid, component_count=dnacount+procount)
+        return
     elif(dnacount < __DNACOUNT_LOWER):
         log("This structure contains too few nucleotides. ({} nucleotides)".format(dnacount), pdbid, nuc_count=dnacount)
+        return
     elif(procount < __PROCOUNT_LOWER):
         log("This structure contains too few residues. ({} residues)".format(procount), pdbid, res_count=procount)
+        return
     
     # Optionally repair with PDB2PQR
     if(PRE_PDB2PQR):
@@ -1034,10 +1041,13 @@ def main(file_name):
     IDs = getIDArray(assembly[0], REGEXES)
     if(len(IDs["protein"]) == 0):
         log("No protein residues found in biological assembly!", pdbid)
+        return
     elif(len(IDs["protein"]) < C["MINIMUM_RES_COUNT"]):
         log("Less than {} protein residues found - aborting.".format(C["MINIMUM_RES_COUNT"]), pdbid)
+        return
     elif(len(IDs["dna"]) == 0):
         log("No DNA nucleotides found in biological assembly!", pdbid)
+        return
     
     # Write out DNA 
     writeStructures(pdbid, assembly, filter_chains, COMPONENTS, c=False, p=False)
@@ -1086,6 +1096,7 @@ def main(file_name):
     if(N == 0):
         # this structure contains no DNA entities - throw error and exit
         log("No valid DNA entities were found!", pdbid)
+        return
     
     if(len(DELETE_MODELS) > 0):
         # delete models with no DNA entities
@@ -1182,10 +1193,16 @@ with open(os.path.join(DATA_PATH,'regexes.json')) as FILE:
 REGEXES = Regexes(regexes=r, components=COMPONENTS)
 
 if __name__ == '__main__':
-    for structure in tqdm(open(args.structure_files)):
+    for structure in open(args.structure_files).readlines():
+        if structure[0] == "#":
+            continue # skip commented lines
         FILE_NAME = structure.strip()
         signal.signal(signal.SIGALRM, timedOut)
         signal.alarm(__TIMEOUT_LENGTH)
-        main(FILE_NAME)
+        try:
+            main(FILE_NAME)
+        except:
+             tb = traceback.format_exc()
+             # write tb to file
         signal.alarm(0)
         signal.alarm(0)

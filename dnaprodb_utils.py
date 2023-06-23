@@ -123,7 +123,7 @@ class Regexes(object):
     def setModel(self, i):
         self.i = i
 
-def log(message, pdbid, Exit=True, print_json=True, trace=False, **kwargs):
+def log(message, pdbid, Exit=False, print_json=True, trace=False, **kwargs):
     """Crude error logging function.
     
     Parameters

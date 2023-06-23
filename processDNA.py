@@ -11,7 +11,7 @@ from Bio.PDB.PDBParser import PDBParser
 from Bio.PDB import NeighborSearch
 from Bio.PDB.PDBIO import Select
 from Bio.PDB import PDBIO
-from forgi._k2n_standalone.knots  import inc_length
+from forgi._k2n_standalone.knots import inc_length
 from forgi._k2n_standalone.rna2d import Pairs
 from dnaprodb_utils import log, getHash, getID, C
 from dnaprodb_utils import ATOM_RE
@@ -23,10 +23,13 @@ import sys
 #import matplotlib.pyplot as plt
 #from mpl_toolkits.mplot3d import Axes3D
 
-import RNA # viennaRNA package 
+#import RNA # viennaRNA package 
 from functools import reduce
-
-np.warnings.filterwarnings('ignore')
+import RNA
+### TODO ####
+import warnings 
+warnings.filterwarnings('ignore')
+##############
 
 # Used to determine if a DNA helical axis is linear, curved in plane or
 # curved out-of-plane
@@ -146,7 +149,7 @@ def runDSSR(prefix, N, quiet=True):
     if(quiet):
         FNULL = open(os.devnull, 'w')
         subprocess.call(args, stdout=FNULL, stderr=FNULL)
-        subprocess.call(["x3dna-dssr", "--cleanup"],stdout=FNULL, stderr=FNULL)
+        subprocess.call(["x3dna-dssr", "--cleanup"], stdout=FNULL, stderr=FNULL)
         FNULL.close()
     else:
         subprocess.call(args)
@@ -1076,7 +1079,7 @@ def helixSegments(sG, pG, dssr, nucExplicitNumberMap, prefix, pDict, nucleotides
                     cpCount += 2.0*len(apu & apv)/(len(apu) + len(apv))
             
             summary["score"] = cpCount/len(pairs)
-            print(("Helix score: {}".format(summary["score"])))
+            #print(("Helix score: {}".format(summary["score"])))
             
             # Add shape parameters and helical axis 
             summary["shape_parameters"] = {}
@@ -1235,7 +1238,8 @@ def fitPolynomial(t, y, degree, ti):
     models = []
     scores = []
     for l in lambd:
-        P = linear_model.Ridge(alpha=l, fit_intercept=True, normalize=False)
+        #TODO
+        P = linear_model.Ridge(alpha=l, fit_intercept=True)#, normalize=False)
         P.fit(T,y)
         yp = P.predict(T)
         MSE = np.mean((y-yp)**2)
@@ -1421,64 +1425,70 @@ def runCurves(prefix, pairs, nucExplicitNumberMap):
     CRV.close()
     
     CRV = open(crv_file)
-    rc += subprocess.call(["Cur5"], stdin=CRV)
+    FNULL = open(os.devnull, 'w')
+    rc += subprocess.call(["Cur5"], stdin=CRV, stdout=FNULL, stderr=FNULL)
     CRV.close()
+    FNULL.close()
     os.rename(tmp_file, pdb_file)
     
     mgw = []
     MGW = []
     # Use Curves groove width values if possible
     if(rc == 0 and os.access(lis_file, os.R_OK)):
-        LISFILE = open(lis_file).readlines()
-        i = 0
-        # Get to the groove width data
-        sub_levels = None
-        while(i < len(LISFILE)):
-            m = re.search('Atom defining backbone: P\s+\d+\s+levels,\s+(\d+)\s+sub-levels', LISFILE[i])
-            if(m):
-                sub_levels = int(m.group(1))
-                i += 5
-                break
+        try:
+            LISFILE = open(lis_file).readlines()
+            i = 0
+            # Get to the groove width data
+            sub_levels = None
+            while(i < len(LISFILE)):
+                m = re.search('Atom defining backbone: P\s+\d+\s+levels,\s+(\d+)\s+sub-levels', LISFILE[i])
+                if(m):
+                    sub_levels = int(m.group(1))
+                    i += 5
+                    break
+                else:
+                    i += 1
+            if(sub_levels is None):
+                m = re.search("(\w+)-DNA_entity", prefix)
+                log("Could not read groove widths from Curves output!", m.group(1), Exit=False)
+                return mgw, MGW
             else:
-                i += 1
-        if(sub_levels is None):
-            m = re.search("(\w+)-DNA_entity", prefix)
-            log("Could not read groove widths from Curves output!", m.group(1), Exit=False)
-            return mgw, MGW
-        else:
-            sub_levels //= 2
-        
-        # Read in the groove width data
-        mg = []
-        MG = []
-        li = []
-        lc = 0
-        while(i < len(LISFILE)):
-            # Get mgw value
-            if(re.search('\d*\.?\d+', LISFILE[i][14:19])):
-                mg.append(float(LISFILE[i][14:19].strip(' *')))
-            else:
-                mg.append('nan')
-            # Get MGW value
-            if(re.search('\d*\.?\d+', LISFILE[i][42:47])):
-                MG.append(float(LISFILE[i][42:47].strip(' *')))
-            else:
-                MG.append('nan')
-            # Check if we are at a level start/end
-            if(re.search('[ACGT]\s+\d+\s+\d', LISFILE[i])):
-                li.append(lc)
-            lc += 1
-            i += 1
-        mg = np.array(mg, dtype=np.float32)
-        MG = np.array(MG, dtype=np.float32)
-        for i in li:
-            s = max(0, i-sub_levels)
-            e = min(len(mg), i+sub_levels+1)
+                sub_levels //= 2
             
-            m = np.nanmean(mg[s:e])
-            M = np.nanmean(MG[s:e])
-            mgw.append('NA' if np.isnan(m) else float(m))
+            # Read in the groove width data
+            mg = []
+            MG = []
+            li = []
+            lc = 0
+            while(i < len(LISFILE)):
+                # Get mgw value
+                if(re.search('\d*\.?\d+', LISFILE[i][14:19])):
+                    mg.append(float(LISFILE[i][14:19].strip(' *')))
+                else:
+                    mg.append('nan')
+                # Get MGW value
+                if(re.search('\d*\.?\d+', LISFILE[i][42:47])):
+                    MG.append(float(LISFILE[i][42:47].strip(' *')))
+                else:
+                    MG.append('nan')
+                # Check if we are at a level start/end
+                if(re.search('[ACGT]\s+\d+\s+\d', LISFILE[i])):
+                    li.append(lc)
+                lc += 1
+                i += 1
+            mg = np.array(mg, dtype=np.float32)
+            MG = np.array(MG, dtype=np.float32)
+            for i in li:
+                s = max(0, i-sub_levels)
+                e = min(len(mg), i+sub_levels+1)
+                
+                m = np.nanmean(mg[s:e])
+                M = np.nanmean(MG[s:e])
+                mgw.append('NA' if np.isnan(m) else float(m))
             MGW.append('NA' if np.isnan(M) else float(M))
+        except:
+            m = re.search("(\w+)-DNA_entity", prefix)
+            log("Curves 5.3 failed to produce output!", m.group(1), Exit=False)
     else:
         m = re.search("(\w+)-DNA_entity", prefix)
         log("Curves 5.3 failed to produce output!", m.group(1), Exit=False)
@@ -1641,6 +1651,9 @@ def runAnalyze(helix, fileName, output, quiet=False):
 def getPairMap(data, pair_dict, nucleotides):
     pair_map = {}
     # Add non-WC pairs to pair table
+    # TODO ######
+    nucleotides = list(nucleotides)
+    ##########
     for j in range(len(nucleotides)):
         nid = nucleotides[j]
         pair_map[nid] = None
@@ -1656,7 +1669,7 @@ def getPairMap(data, pair_dict, nucleotides):
     return pair_map
 
 def flatten(l):
-    return reduce(lambda a,b: a + (flatten(b) if hasattr(b, '__iter__') else [b]), l, [])
+    return [item for sublist in l for item in sublist]
 
 def removeFalsePseudoknots(nuc_ids, pair_map, strand_data):
     strands = []
@@ -1664,7 +1677,8 @@ def removeFalsePseudoknots(nuc_ids, pair_map, strand_data):
         strands.append(s["ids"])
     
     for sp in permutations(strands):
-        ids =  flatten(sp) # permutation of nucleotide ids
+        ids = flatten(sp) # permutation of nucleotide ids
+        
         pair_tuples = makePairTuples(ids, pair_map)
         if(not Pairs(pair_tuples).hasPseudoknots()):
             # Found one - go with this
@@ -1708,7 +1722,7 @@ def process(prefix, N, REGEXES, COMPONENTS, META_DATA, quiet=True):
     structure = parser.get_structure("DNA", fileName)
     
     # Run DSSR and load the output json
-    DSSR = runDSSR(prefix, N, quiet)
+    DSSR = runDSSR(prefix, N, quiet=True)
     
     # Array to store DNA data. Each entry is a dict which contains a 
     # list of entities, where each entity describes some assembly of 
@@ -1751,8 +1765,10 @@ def process(prefix, N, REGEXES, COMPONENTS, META_DATA, quiet=True):
             pair_dict[p["id2"]].append(p)
         
         # Process entities. Each entity is a connected subgraph of G.
-        entities = list(nx.connected_component_subgraphs(G))
-        
+        ######## TODO ###############
+        #entities = list(nx.connected_component_subgraphs(G))
+        entities = list(G.subgraph(c) for c in nx.connected_components(G))
+        ############################
         # Get chain info
         all_chains = {}
         for nt in data["nts"]:
@@ -1798,18 +1814,18 @@ def process(prefix, N, REGEXES, COMPONENTS, META_DATA, quiet=True):
             })
             
         
-        print(("Number of DNA entities: {}".format(len(entities))))
+        #print(("Number of DNA entities: {}".format(len(entities))))
         # Iterate over entities
         ecount = 0
         strandNum = {}
         for entity in entities:
             if(entity.number_of_nodes() < 2):
                 # single nucleotide fragments are ignored.
-                out["ignored_entities"].append(entity.nodes())
+                out["ignored_entities"].append(list(entity.nodes()))
                 continue
             eout = {
                 "type": None, # helix, ssDNA, hybrid, or other
-                "nucleotides": entity.nodes(),
+                "nucleotides": list(entity.nodes()),
                 "strands": [],
                 "pairs": [],
                 "stacks": [],
@@ -1840,7 +1856,9 @@ def process(prefix, N, REGEXES, COMPONENTS, META_DATA, quiet=True):
             pG = nx.Graph() # pair sub-graph
             
             # Add edges to sub-graphs
-            for u,v,d in entity.edges_iter(data=True):
+            #### TODO ####
+            #for u,v,d in entity.edges_iter(data=True):
+            for u,v,d in entity.edges(data=True):
                 if(d["type"] == "link"):
                     lG.add_edge(u, v)
                 elif(d["type"] == "pair"):
@@ -1859,7 +1877,9 @@ def process(prefix, N, REGEXES, COMPONENTS, META_DATA, quiet=True):
                 eout["stacks"].append(getHash(s))
             
             # Add strands to entity
-            strands = list(nx.connected_component_subgraphs(lG))
+            # TODO
+            #strands = list(nx.connected_component_subgraphs(lG))
+            strands = list(lG.subgraph(c) for c in nx.connected_components(lG))
             strand_dict = {}
             for s in strands:
                 P3end = None
@@ -1880,7 +1900,9 @@ def process(prefix, N, REGEXES, COMPONENTS, META_DATA, quiet=True):
                     }
                 }
                 # Identify the 5' and 3' ends of the strand
-                for u,d in s.degree_iter():
+                # TODO
+                #for u,d in s.degree_iter():
+                for u,d in s.degree():
                     if(d == 1):
                         # check if 5' or 3' end
                         for l in links:
@@ -1971,7 +1993,7 @@ def process(prefix, N, REGEXES, COMPONENTS, META_DATA, quiet=True):
                 for residue in chain:
                     nucSeqMap[getID(residue=residue)] = sequential
                     sequential += 1
-            edata = runDSSR(ename, 1)
+            edata = runDSSR(ename, 1, quiet=True)
             
             # Determine entity type
             hseg = helixSegments(sG, pG, edata, nucSeqMap, ename, pair_dict, nuc_dict)
@@ -1981,7 +2003,7 @@ def process(prefix, N, REGEXES, COMPONENTS, META_DATA, quiet=True):
                 # Structures with multiple helices automatically
                 # classified as 'other'
                 etype = "other"
-                print(etype)
+                #print(etype)
             elif(len(hseg) == 1):
                 # Determine fraction of helical and single-stranded
                 # nucleotides
@@ -2006,7 +2028,7 @@ def process(prefix, N, REGEXES, COMPONENTS, META_DATA, quiet=True):
                     etype = htype+"/ssDNA"
                 else:
                     etype = "other"
-                print((etype, stotal, htotal)) 
+                #print((etype, stotal, htotal)) 
             else:
                 # Determine fraction of single-stranded nucleotides
                 stotal = 0
@@ -2017,7 +2039,7 @@ def process(prefix, N, REGEXES, COMPONENTS, META_DATA, quiet=True):
                     etype = "ssDNA"
                 else:
                     etype = "other"
-                print((etype, stotal))
+                #print((etype, stotal))
             
             # Add groove assignments to helical segment pairs
             for helix in hseg:
@@ -2064,7 +2086,7 @@ def process(prefix, N, REGEXES, COMPONENTS, META_DATA, quiet=True):
                     ordered_ids += s["ids"]
             
             if(set(ordered_ids) != set(eout["nucleotides"])):
-                print((set(eout["nucleotides"]) - set(ordered_ids)))
+                #print((set(eout["nucleotides"]) - set(ordered_ids)))
                 log("DBN string length and number of nucleotides do not match.", prefix)
             
             # Get DBN information
@@ -2072,11 +2094,13 @@ def process(prefix, N, REGEXES, COMPONENTS, META_DATA, quiet=True):
             pair_tuples = makePairTuples(ordered_ids, PAIR_MAP)
             PairObject = Pairs(pair_tuples)
             if(PairObject.hasPseudoknots()):
-                print("Attemping to remove any false Pseudoknots")
-                # Try to remove any false pseudoknots we may have created
+                # print("Attemping to remove any false Pseudoknots")
+                # # Try to remove any false pseudoknots we may have created
                 ordered_ids, pair_tuples = removeFalsePseudoknots(ordered_ids, PAIR_MAP, eout["strands"])
                 eout["visualization"]["contains_pseudoknots"] = Pairs(pair_tuples).hasPseudoknots()
-            eout["visualization"]["dbn"] = inc_length(pair_tuples).toVienna(len(ordered_ids))
+            # TODO ###
+            #eout["visualization"]["dbn"] = inc_length(pair_tuples).toVienna(len(ordered_ids))
+            eout["visualization"]["dbn"] = inc_length(Pairs(pair_tuples)).toVienna(len(ordered_ids))
             eout["nucleotides"] = ordered_ids
             
             # Sort Strands
